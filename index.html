@@ -1,64 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- 1. Head Metadata -->
+  <!-- 1 · Head Metadata -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="PoolDad AI Sync – real-time TikTok Live comment responder powered by OpenAI">
-  <title>PoolDad AI Sync</title>
+  <meta name="description" content="PoolDad AI Sync – real‑time overlay replies and auto‑comments for your own TikTok videos, ready for LIVE‑chat posting as soon as TikTok opens the door.">
+  <title>PoolDad AI Sync</title>
 
-  <!-- 2. Favicon & Icons -->
+  <!-- 2 · Favicon & Icons -->
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <!-- <link rel="apple-touch-icon" href="/apple-touch-icon.png" /> -->
 
-  <!-- 3. SEO / Crawlers (optional) -->
+  <!-- 3 · Optional SEO / Crawlers -->
   <!-- <meta name="robots" content="index,follow"> -->
   <!-- <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml"> -->
 
-  <!-- 4. (You can link your CSS here) -->
+  <!-- 4 · (Add your stylesheet here if needed) -->
   <!-- <link rel="stylesheet" href="styles.css"> -->
 </head>
 <body>
 
-  <!-- 5. Page Header -->
+  <!-- 5 · Page Header -->
   <header>
-    <h1>PoolDad AI Sync</h1>
-    <p>Your TikTok Live comments, answered automatically by AI.</p>
+    <h1>PoolDad AI Sync</h1>
+    <p>AI answers your TikTok audience — on‑screen during LIVE and now in the comments of your own videos.</p>
     <nav>
-      <a href="terms.html">Terms of Service</a> |
-      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a> |
+      <a href="privacy.html">Privacy Policy</a>
     </nav>
   </header>
 
-  <!-- 6. Features Section -->
+  <!-- 6 · Features Section -->
   <section id="features">
-    <h2>Key Features</h2>
+    <h2>Key Features</h2>
     <ul>
-      <li>🔄 Real-time comment replies using OpenAI GPT</li>
-      <li>📊 Basic analytics: total comments, response times</li>
-      <li>🔍 Creator insights & trending content suggestions</li>
-      <li>⚙️ Easy setup via n8n workflows</li>
+      <li>🔄 <strong>LIVE Overlay Replies (&lt; 2 s)</strong> – GPT‑powered answers appear as lower‑third or TTS while you stream.</li>
+      <li>💬 <strong>Auto‑Comments on Published Videos</strong> – PoolDad posts witty replies under your own clips using <code>comment.list</code> + <code>comment.create</code> scopes.</li>
+      <li>🚀 <strong>Road‑map: Direct LIVE‑Chat Posting</strong> – will switch on automatically once TikTok releases the write API.</li>
+      <li>📊 Basic analytics: comment count, median response‑time, top emojis.</li>
+      <li>⚙️ Easy setup: import a one‑file n8n workflow, drop in keys, done.</li>
     </ul>
   </section>
 
-  <!-- 7. Get Started Section -->
+  <!-- 7 · Get Started Section -->
   <section id="get-started">
     <h2>Get Started in Minutes</h2>
     <ol>
-      <li>Create your TikTok Developer app and grab your <code>client_key</code> &amp; <code>client_secret</code>.</li>
-      <li>Define your OAuth Redirect URI (<code>/tiktok/oauth/callback</code>).</li>
-      <li>Open n8n, configure your OpenAI &amp; TikTok credentials, and import the PoolDad workflow.</li>
-      <li>Activate the workflow—you’re live! 🎉</li>
+      <li>Create a TikTok Developer app and copy your <code>client_key</code> & <code>client_secret</code>.</li>
+      <li>Add <code>/tiktok/oauth/callback</code> as an OAuth Redirect URI.</li>
+      <li>Open n8n, paste your OpenAI & TikTok credentials, then import the PoolDad workflow.</li>
+      <li><strong>Grant Permissions</strong> – approve <code>comment.list</code> + <code>comment.create</code> so PoolDad can post under your videos. We’ll request the LIVE‑comment scope automatically once TikTok exposes it.</li>
+      <li>Activate the workflow — you’re live! 🎉</li>
     </ol>
   </section>
 
-  <!-- 8. Footer -->
+  <!-- 8 · Footer -->
   <footer>
-    <p>Contact us: <a href="mailto:nikolasvergara@icloud.com">nikolasvergara@icloud.com</a></p>
-    <p>Address: Conselheiro Nébias 100, Campo Elísios, São Paulo, SP, 01203-000, Brazil</p>
-    <p>© 2025 PoolDad AI Sync</p>
+    <p>Automated comments on your own videos are active; LIVE‑chat posting will enable the moment TikTok unlocks the API.</p>
+    <p>Contact: <a href="mailto:nikolasvergara@icloud.com">nikolasvergara@icloud.com</a></p>
+    <p>Address: Conselheiro Nébias 100, Campo Elísios, São Paulo, SP, 01203‑000, Brazil</p>
+    <p>© 2025 PoolDad AI Sync</p>
   </footer>
 
 </body>
