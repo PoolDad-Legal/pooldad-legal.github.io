@@ -82,11 +82,16 @@ This document outlines the frontend specifications for the core Canvas and Chat 
         *   Status Indicator: Small dot/badge colored based on `agentConfiguration.last_run_status` (e.g., green for 'success', red for 'error', yellow for 'running', grey for 'idle').
     *   **Body:**
         *   Last Run Time: "Last run: [formatted `agentConfiguration.last_run_at`]" or "Not run yet."
-        *   Output Preview: Display `agentConfiguration.last_run_output_preview` (e.g., simple text).
+        *   **Output Preview:**
+            *   Display `agentConfiguration.last_run_output_preview`.
+            *   **Note on `last_run_output_preview` Handling (from `frontend_specs_review_proposals.md`):** The UI should attempt to render `last_run_output_preview` as plain text. If the preview is very short and looks like JSON or a simple key-value pair, it can be displayed as is. Avoid complex rendering for the *preview* itself, as it's a summary. For structured data, the preview might be a brief description (e.g., "Generated sales report data") rather than the data itself. "View Full Output" provides access to the complete data.
     *   **Footer/Actions:**
         *   **"Run Agent" Button:** Enabled if status is 'idle', 'success', or 'error'. Changes to "Running..." and disables during execution.
         *   **"Configure Agent" Button:** (e.g., gear icon) Opens the Agent Configuration Modal.
-        *   (Optional for demo) "View Full Output" button if output is complex.
+        *   **"View Full Output" Button/Link:**
+            *   Label: "View Full Output" or "Show Last Output Details".
+            *   Enabled/Visible if `agentConfiguration.last_run_full_output_ref` is present.
+            *   Action: Opens a modal dialog (see "View Full Output Modal" below).
 *   **API Interaction:**
     *   **On Mount/Props Change (if `agent_config_id` exists but full config details are not passed in):**
         *   **Endpoint:** `GET /agent-configurations/:agentConfigId` (Agent Service), using `blockData.content.agent_config_id`.
@@ -113,6 +118,21 @@ This document outlines the frontend specifications for the core Canvas and Chat 
     *   `isRunning`: Boolean (local loading state for the run button).
     *   `runError`: String or Object.
 
+## 2.1. View Full Output Modal (Frontend Component)
+
+*   **Purpose:** Displays the full output of an agent's last run, referenced by `last_run_full_output_ref`.
+*   **Props:** `isOpen`, `onClose`, `fullOutputData` (string content from `last_run_full_output_ref`).
+*   **Key UI Elements & Layout:**
+    *   Modal Dialog Structure.
+    *   Title: "Full Agent Output".
+    *   Content Area:
+        *   Attempt to detect if `fullOutputData` is JSON or Markdown.
+        *   If JSON: Display pretty-printed (e.g., using `<pre>` tags with appropriate styling or a lightweight JSON viewer component).
+        *   If Markdown: Render the Markdown to HTML within the modal.
+        *   If plain text or unknown: Display as pre-formatted text.
+    *   "Close" Button.
+*   **Note (from `frontend_specs_review_proposals.md`):** "The modal for 'View Full Output' should provide basic rendering for common formats like JSON and Markdown. For the E2E demo, complex interactive displays (like tables from JSON) are not required; readable presentation is key."
+
 ## 3. Agent Configuration Modal (Frontend Component)
 
 *   **Purpose:** Allows users to create or edit an `AgentConfiguration`.
@@ -120,15 +140,26 @@ This document outlines the frontend specifications for the core Canvas and Chat 
 *   **Key UI Elements & Layout (based on `agent_interaction_model.md` Section 2):**
     *   **Modal Dialog Structure.**
     *   **Title:** "Configure Agent" or "Create New Agent Configuration".
-    *   **Agent Name Input:**
-        *   Label: "Configuration Name"
-        *   Type: Text input
-    *   **Description Input (Optional):**
-        *   Label: "Description"
-        *   Type: Text area
-    *   **YAML Editor:**
-        *   A text area, ideally with YAML syntax highlighting (e.g., using `react-simple-code-editor` with Prism.js, or a more advanced editor like Monaco if feasible for demo).
-        *   Displays/allows editing of `yaml_config` string.
+    *   **Layout:** Consider a two-pane layout or tabbed interface within the modal.
+        *   **Pane 1: Configuration Editor (Editable)**
+            *   **Agent Name Input:**
+                *   Label: "Configuration Name"
+                *   Type: Text input
+            *   **Description Input (Optional):**
+                *   Label: "Description"
+                *   Type: Text area
+            *   **YAML Editor:**
+                *   A text area, ideally with YAML syntax highlighting.
+                *   Displays/allows editing of `yaml_config` string.
+        *   **Pane 2: Agent Definition Info (Read-Only) (from `frontend_specs_review_proposals.md`)**
+            *   Title: "Agent Template Information" or similar.
+            *   Content:
+                *   `AgentDefinition.name` (or `displayName` from blueprint)
+                *   `AgentDefinition.description` (and potentially `epithet`, `tagline` from `core_agent_blueprints.md`).
+                *   **Inputs Schema:** A user-friendly rendering of `AgentDefinition.inputs_schema` (e.g., "Required Inputs: `api_key` (string), `search_query` (string); Optional Inputs: `max_results` (number, default: 10)"). This helps users know what to provide in the YAML.
+                *   (Optional for Demo) Information on which parts of `triggers_config` or `memory_config` are designed to be overridden.
+                *   `AgentDefinition.version`.
+            *   This data would need to be fetched when the modal opens for a new configuration (based on `agentDefinitionId`) or for an existing one (from the `agentConfiguration.agent_definition` field if populated, or an additional fetch).
     *   **Buttons:**
         *   "Save Configuration" button.
         *   "Cancel" button (calls `onClose`).
@@ -137,9 +168,9 @@ This document outlines the frontend specifications for the core Canvas and Chat 
     *   **On Open (for existing `agentConfigurationId`):**
         *   **Endpoint:** `GET /agent-configurations/:agentConfigurationId` (Agent Service).
         *   **Headers:** Include JWT.
-        *   **Success Handling:** Populate form fields (`name`, `description`, `yaml_config_string`).
+        *   **Success Handling:** Populate form fields (`name`, `description`, `yaml_config_string`). Also fetch associated `AgentDefinition` (if `agent_definition_id` is part of the response or via a separate call) to populate the "Agent Definition Info" pane.
     *   **On Open (for new, with `agentDefinitionId`):**
-        *   (Optional for demo complexity) Could fetch `AgentDefinition` from `GET /agent-definitions/:agentDefinitionId` to get a default `input_schema` or template YAML to prefill. For simplest demo, can start with empty/example YAML.
+        *   Fetch `AgentDefinition` from `GET /agent-definitions/:agentDefinitionId` (Agent Service) to populate the "Agent Definition Info" pane and potentially prefill the YAML editor with default input structures or comments based on `inputs_schema`.
     *   **"Save Configuration" Button Click:**
         *   **If new (`agentConfigurationId` is null):**
             *   **Endpoint:** `POST /workspaces/:workspaceId/agent-configurations` (Agent Service).
@@ -159,7 +190,7 @@ This document outlines the frontend specifications for the core Canvas and Chat 
     *   `yamlConfigString`: String (content of the YAML editor).
     *   `isLoading`: Boolean.
     *   `error`: String or Object.
-    *   `currentAgentDefinition`: Object (optional, if fetching definition for defaults).
+    *   `currentAgentDefinitionDetails`: Object (stores data for the "Agent Definition Info" pane).
 
 ## 4. Chat Dock View
 
@@ -173,7 +204,16 @@ This document outlines the frontend specifications for the core Canvas and Chat 
     *   **Message View Panel:**
         *   Header: Displays `selectedChannel.name`.
         *   Message History: Scrollable area displaying messages.
-            *   Each message shows sender (avatar/name - simplified for demo, just `sender_type` differentiation) and `content.text`.
+            *   Each message is rendered based on its properties (`sender_type`, `content_type`, `content`).
+            *   User messages vs. Agent messages should be visually distinct (e.g., alignment, color, avatar/icon).
+            *   **Rendering `ChatMessage.content` based on `ChatMessage.content_type` (from `frontend_specs_review_proposals.md`):**
+                *   **`content_type: 'text'`:** Render `content.text` as plain text.
+                *   **`content_type: 'markdown'`:** Render `content.text` (which contains markdown) as HTML using a standard markdown rendering library.
+                *   **`content_type: 'json_proposal'`:**
+                    *   Display `content.title` (if present) as a header within the message bubble.
+                    *   Display `content.description` as text.
+                    *   Display `content.data` (JSON) pretty-printed (e.g., in a collapsible section or a styled `<pre>` block).
+                    *   If `content.actions` (e.g., `[{ "label": "Accept", "action_id": "accept_proposal_123" }]`) are present, render them as clickable buttons within the message bubble. (For E2E demo, button actions might just log to console or be non-functional, but their presence should be shown).
             *   Agent messages styled differently (e.g., distinct background, "bot" icon).
     *   **Message Input Box:**
         *   Text area for message input.
@@ -231,4 +271,3 @@ This document outlines the frontend specifications for the core Canvas and Chat 
     *   `agentConfigsForWorkspace`: Array (cached, for mapping names in commands to IDs).
 
 This specification provides a detailed guide for the frontend development of core Canvas and Chat functionalities crucial for the E2E demo.
-```
