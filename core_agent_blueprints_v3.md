@@ -481,7 +481,7 @@ version: 0.2
 description: "Monitors Shopify store health predictively, analyzes root causes of GMV loss with AI, and orchestrates adaptive remediation actions."
 triggers:
   - type: stream
-    source: kafka_topic_shopify_events 
+    source: kafka_topic_shopify_events
     config:
       topic: "ionflux.shopify.workspace_{{workspace_id}}.events_raw"
       consumer_group: "sales_sentinel_v2_events_consumer"
@@ -503,7 +503,7 @@ inputs_schema: # Schemas for data ingested from Kafka topics
     description: "Aggregated performance metrics (CVR, AOV, site speed, error rates)."
 outputs_config:
   - key: incident_analysis_report
-    type: json 
+    type: json
     description: "Structured JSON report detailing detected anomaly, root cause analysis, actions taken, and GMV impact."
   - key: alert_to_brief_butler
     type: json
@@ -629,8 +629,8 @@ triggers:
     path: "/ugc_matchmaker/initiate_match" # Triggered by brand user action or campaign setup
     config:
       workspace_id_param: "workspace_id"
-      brief_id_param: "campaign_brief_id" 
-  - type: event 
+      brief_id_param: "campaign_brief_id"
+  - type: event
     source: "agent_010_revenue_tracker" # Example: Triggered if Revenue Tracker identifies a product needing UGC boost
     config:
       event_type: "low_performing_product_alert"
@@ -649,12 +649,12 @@ inputs_schema:
     default: 10
     description: "Maximum number of top creator matches to return."
   - key: budget_range
-    type: json 
+    type: json
     required: false
     description: "Optional budget constraints for the collaboration (e.g., {\"min\": 500, \"max\": 5000, \"currency\": \"USD\"})."
 outputs_config:
   - key: ranked_creator_matches
-    type: json 
+    type: json
     description: "Ranked list of matched creators, including predicted ROI score, affinity breakdown, and sample GhostPitch proposal."
   - key: outreach_automation_payload
     type: json
@@ -779,7 +779,7 @@ inputs_schema:
     required: true # For webhook trigger
     description: "ID of the outreach campaign defining ICP, messaging templates, goals."
   - key: lead_list_url # Can be a GSheet, CSV URL, or direct payload
-    type: string 
+    type: string
     required: false # If leads are provided directly or via another input
     description: "URL to a list of leads to process for the campaign."
   - key: lead_data_payload # Alternative to URL, for direct lead injection
@@ -1287,12 +1287,12 @@ triggers:
     config:
       topic: "ionflux.platform.activity_events" # Events like 'agent_run_success', 'canvas_page_created', 'saas_connected'
       consumer_group: "badge_motivator_v2_consumer"
-  - type: schedule 
+  - type: schedule
     cron: "0 0 * * *" # Daily
     config:
       task: "daily_streak_checks_and_leaderboard_updates"
 inputs_schema: # Schema for events from Kafka
-  - key: event_type 
+  - key: event_type
     type: string
     required: true
     description: "Type of platform event that occurred (e.g., 'agent_run_success', 'quest_step_completed')."
@@ -1304,7 +1304,7 @@ inputs_schema: # Schema for events from Kafka
     type: string
     required: true
     description: "Workspace ID."
-  - key: event_properties 
+  - key: event_properties
     type: json # Specific details of the event, e.g., agent_id, feature_used, kpi_achieved
     required: false
     description: "Additional properties of the event relevant for XP calculation or badge criteria."
@@ -1456,7 +1456,7 @@ triggers:
     path: "/revenue_tracker/shopify_event"
     config:
       workspace_id_param: "workspace_id"
-      shop_id_param: "shopify_shop_id" 
+      shop_id_param: "shopify_shop_id"
   - type: schedule
     cron: "0 5 * * *" # Daily at 5 AM (user's timezone)
     config:
@@ -1477,7 +1477,7 @@ inputs_schema:
     description: "JSON object allowing users to manually input or update COGS per SKU, fixed app fees, average marketing cost per order."
 outputs_config:
   - key: profitability_dashboard_data_json
-    type: json 
+    type: json
     description: "Structured JSON data for rendering a profitability dashboard (daily/weekly/monthly trends, top/bottom products by margin)."
   - key: profitability_digest_markdown
     type: md
@@ -1493,7 +1493,7 @@ stack_details:
   database_dependencies: ["PostgreSQL (for processed financial data, COGS)", "Redis (for caching dashboard data)"]
   queue_dependencies: ["Redis + RQ (for async report generation)"]
   other_integrations: ["Shopify Admin API", "Payment Gateway APIs (Stripe, PayPal - future for direct fee reconciliation)", "Marketing Platform APIs (future for cost ingestion)", "Agent001/007 (for digests/alerts)"]
-memory_config: 
+memory_config:
   type: none # Primarily uses structured data in PostgreSQL.
   description: "Embeddings are not core for 'Lite' version; future 'Pro' might use Pinecone for analyzing text in product descriptions vs. profitability."
 ```

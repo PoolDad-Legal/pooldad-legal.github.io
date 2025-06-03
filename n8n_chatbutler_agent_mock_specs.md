@@ -27,7 +27,7 @@ This document provides specifications for the n8n workflow mock for the Chat Bri
       "workspace_id": "user_workspace_id", // e.g., "ws_xyz789"
       "user_id": "triggering_user_id", // User who invoked the agent command, e.g., "user_jane_doe"
       "effective_config": {
-        // This object is the result of AgentService merging AgentConfiguration.yaml_config 
+        // This object is the result of AgentService merging AgentConfiguration.yaml_config
         // with any runtime_params provided during invocation.
 
         // --- From AgentConfiguration.yaml_config (examples) ---

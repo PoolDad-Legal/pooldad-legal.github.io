@@ -26,10 +26,10 @@ This document defines the specifications for n8n workflows that will mock the ba
       "user_id": "uuid", // User who triggered or owns the config
       "effective_config": { // Merged config: AgentConfiguration.yaml_config + runtime_params
         // Specific keys from Agent 004's inputs_schema:
-        "brand_id": "uuid-of-brand-entity", 
+        "brand_id": "uuid-of-brand-entity",
         "min_order_value_threshold": 200.00,
         "watch_products": [ // Example structure
-          {"sku": "TSHIRT-RED-L"}, 
+          {"sku": "TSHIRT-RED-L"},
           {"product_id": "gid://shopify/Product/123456789"},
           {"title_contains": "Limited Edition"}
         ],
@@ -68,7 +68,7 @@ This document defines the specifications for n8n workflows that will mock the ba
                     {"product_id": "gid://shopify/Product/987654321", "name": "Another Product", "quantity": 2, "price": 50.00}
                   ],
                   "brand_name": "Mocked Brand Name", // Could be fetched or part of effective_config if needed for message
-                  "meets_criteria": true 
+                  "meets_criteria": true
                 }
                 ```
         *   If not triggering:
@@ -98,9 +98,9 @@ This document defines the specifications for n8n workflows that will mock the ba
     *   **Body (JSON):**
         ```json
         {
-          "sender_id": "{{ $json.WebhookStart.body.agent_configuration_id }}", 
+          "sender_id": "{{ $json.WebhookStart.body.agent_configuration_id }}",
           "sender_type": "agent",
-          "content_type": "markdown", 
+          "content_type": "markdown",
           "content": {"text": "{{ $json.FormatAlertMessage.output.alert_message }}"}
         }
         ```
@@ -116,7 +116,7 @@ This document defines the specifications for n8n workflows that will mock the ba
           "agent_configuration_id": "{{ $json.WebhookStart.body.agent_configuration_id }}",
           "run_id": "{{ $json.WebhookStart.body.run_id }}",
           "status": "success",
-          "output_preview": "{{ $json.FormatAlertMessage.output.alert_message.substring(0, 250) }}", 
+          "output_preview": "{{ $json.FormatAlertMessage.output.alert_message.substring(0, 250) }}",
           "full_output_reference": null // For demo, preview is sufficient for Sentinel. Could be mock markdown ref.
         }
         ```
@@ -130,7 +130,7 @@ This document defines the specifications for n8n workflows that will mock the ba
         {
           "agent_configuration_id": "{{ $json.WebhookStart.body.agent_configuration_id }}",
           "run_id": "{{ $json.WebhookStart.body.run_id }}",
-          "status": "success", 
+          "status": "success",
           "output_preview": "Shopify Sales Sentinel run: No new orders met alert criteria. (Mocked)",
           "full_output_reference": null
         }
@@ -187,11 +187,11 @@ This document defines the specifications for n8n workflows that will mock the ba
         if (reporting_period === "last_30_days") {
           sales_factor = 4;
         }
-        
+
         let total_sales = parseFloat((Math.random() * 1000 * sales_factor + 500 * sales_factor).toFixed(2));
         let orders = Math.max(1, parseInt(Math.random() * 20 * sales_factor + 10 * sales_factor)); // Ensure orders > 0
         let aov = parseFloat((total_sales / orders).toFixed(2));
-        
+
         const top_products_list = [];
         for (let i = 0; i < num_top_products; i++) {
           top_products_list.push({
@@ -207,10 +207,10 @@ This document defines the specifications for n8n workflows that will mock the ba
              title: `Revenue Report (${reporting_period}) - Mocked by n8n`,
              total_sales: total_sales,
              average_order_value: aov,
-             total_orders: orders 
+             total_orders: orders
           },
           top_products: top_products_list,
-          reporting_period: reporting_period 
+          reporting_period: reporting_period
         };
         return item;
         ```

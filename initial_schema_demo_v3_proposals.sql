@@ -277,21 +277,21 @@ INSERT INTO workspaces (name, owner_user_id) VALUES
 -- The `id` field must exactly match the agent ID from the PRM.
 
 INSERT INTO agent_definitions (
-    id, name, version, definition_status, 
-    prm_details_json, 
-    triggers_config_json_array, 
-    inputs_schema_json_array, 
-    outputs_config_json_array, 
-    stack_details_json, 
-    deployment_info_json, 
-    memory_config_json, 
-    category_tags_array, 
+    id, name, version, definition_status,
+    prm_details_json,
+    triggers_config_json_array,
+    inputs_schema_json_array,
+    outputs_config_json_array,
+    stack_details_json,
+    deployment_info_json,
+    memory_config_json,
+    category_tags_array,
     underlying_platform_services_required_array
-) VALUES 
+) VALUES
 (
-    'agent_004_refactored', 
-    'Shopify Sales Sentinel v2', 
-    '0.2', 
+    'agent_004_refactored',
+    'Shopify Sales Sentinel v2',
+    '0.2',
     'prm_active',
     '{
         "epithet": "O Guardião Preditivo do Fluxo de Caixa da Loja",
@@ -356,7 +356,7 @@ INSERT INTO agent_definitions (
     '{"Shopify_Integration", "LLM_Orchestration", "Kafka_Bus", "Chat_Service"}'::text[]
 ),
 (
-    'agent_001', 'Email Wizard', '0.1', 'prm_active', 
+    'agent_001', 'Email Wizard', '0.1', 'prm_active',
     '{"epithet": "O Xamã que Conjura Receita no Silêncio do E-mail", "tagline": "INBOX ≠ ARQUIVO MORTO; INBOX = ARMA VIVA", ... (rest of PRM details for Agent 001)}'::jsonb,
     '[{"type": "schedule", "default_config_json": {"cron_expression": "0 */2 * * *"}}, {"type": "webhook", "default_config_json": {"webhook_path_suffix": "/emailwizard/run"}}]'::jsonb,
     '[{"key_name": "shopify_event", "data_type": "json", "is_required": false}, {"key_name": "manual_payload", "data_type": "json", "is_required": false}]'::jsonb,

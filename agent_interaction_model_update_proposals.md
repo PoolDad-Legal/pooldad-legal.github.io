@@ -60,13 +60,13 @@ This section requires the most significant updates to reflect the new relationsh
             *   *Example in `yaml_config`*:
                 ```yaml
                 memory:
-                  namespace_suffix: 'my_project_alpha' 
+                  namespace_suffix: 'my_project_alpha'
                 ```
         4.  **Fixed vs. Configurable Stack Elements:** Generally, the core `AgentDefinition.stack_details` (like language, runtime) are fixed. However, an `AgentDefinition` might declare a list of compatible LLM models (e.g., in `stack_details.models_used`). The `yaml_config` could then allow the user to *select one* from this predefined list for the instance to use, e.g.:
             *   *Example in `yaml_config`*:
                 ```yaml
                 llm_preference:
-                  model: 'anthropic:claude-3-haiku' 
+                  model: 'anthropic:claude-3-haiku'
                 ```
         The Agent Configuration UI should clearly guide users on what is configurable for their specific agent instance based on its parent `AgentDefinition`."
 

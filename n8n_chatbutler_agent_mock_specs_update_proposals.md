@@ -62,7 +62,7 @@ This document outlines proposed textual revisions to `n8n_chatbutler_agent_mock_
             *   The goal is to *demonstrate usage* of both inputs, not to create a perfect summarizer.
         *   **Input for LLM (Conceptual):**
             ```
-            Prompt: {{ effective_config.input_brief_structure_prompt_template }} 
+            Prompt: {{ effective_config.input_brief_structure_prompt_template }}
             Content to Summarize: {{ effective_config.runtime_chat_messages_content }}
             ```
         *   **Mock Output (String - Markdown formatted brief):**
