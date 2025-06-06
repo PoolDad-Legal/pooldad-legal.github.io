@@ -346,7 +346,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "icon_url": "string (url, nullable)",
     "status": "string (enum: 'active', 'archived', 'template_draft', default: 'active')"
   },
-  "CanvasBlock": {
+  "CanvasBlock": { 
     "id": "string (UUID)",
     "page_id": "string (references CanvasPage.id, indexed)",
     "type": "string (enum: 'text', 'agent_snippet', 'embed_panel', 'table_view', 'kanban_board', 'image', 'video', 'json_display')",
@@ -366,7 +366,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "created_at": "timestamp",
     "updated_at": "timestamp"
   },
-  "ChatDockChannel": {
+  "ChatDockChannel": { 
     "id": "string (UUID)",
     "workspace_id": "string (references Workspace.id, indexed)",
     "name": "string",
@@ -376,13 +376,13 @@ We propose a **Microservices Architecture** for IONFLUX.
     "created_at": "timestamp",
     "updated_at": "timestamp"
   },
-  "ChatMessage": {
+  "ChatMessage": { 
     "id": "string (UUID)",
     "channel_id": "string (references ChatDockChannel.id, indexed)",
     "sender_id": "string (references User.id or AgentConfiguration.id, indexed)",
     "sender_type": "string (enum: 'user', 'agent', 'system')",
     "content_type": "string (enum: 'text', 'markdown', 'json_data', 'interactive_proposal', 'file_attachment', 'agent_status_update')",
-    "content_json": {
+    "content_json": { 
       "text_body": "string (for text/markdown)",
       "json_payload": "json_object (for json_data, interactive_proposal)",
       "file_details_json": "json_object (for file_attachment)",

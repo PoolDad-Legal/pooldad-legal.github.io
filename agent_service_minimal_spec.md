@@ -91,7 +91,7 @@ All endpoints listed below are protected and require a valid JWT (obtained from 
         "name": "string",
         "description": "string_or_null",
         // Potentially include last_run_status for quick overview
-        "last_run_status": "string_or_null"
+        "last_run_status": "string_or_null" 
       }
       // ... more configurations
     ]

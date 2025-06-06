@@ -91,7 +91,7 @@ CREATE TABLE CanvasBlocks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     page_id UUID NOT NULL REFERENCES CanvasPages(id) ON DELETE CASCADE,
     type TEXT NOT NULL, -- e.g., 'text', 'agent_snippet', 'embed_panel'
-    content JSONB,
+    content JSONB, 
     -- For 'agent_snippet': content -> '{ "agent_config_id": "uuid-of-agent-config" }'
     -- For 'text': content -> '{ "markdown": "..." }'
     position_x INTEGER DEFAULT 0,
