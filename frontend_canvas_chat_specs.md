@@ -103,7 +103,7 @@ This document outlines the frontend specifications for the core Canvas and Chat 
         *   **Request Body (for demo, runtime_params might be empty if not supported by snippet block directly):**
             ```json
             {
-              "runtime_params": {} 
+              "runtime_params": {}
             }
             ```
         *   **Success Handling (HTTP 202 - Accepted):**

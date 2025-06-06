@@ -36,19 +36,19 @@ This defines the internal API contract between services like `Agent Service` and
 *   **Request to `LLM Orchestration Service`:**
     ```json
     {
-      "provider": "string (e.g., 'openai', 'anthropic', 'deepseek', 'sentence-transformers', defaults to 'openai')", 
-      "model": "string (e.g., 'gpt-4o', 'claude-3-haiku', 'ds-chat-b32', 'multi-qa-MiniLM-L6-cos-v1')", 
+      "provider": "string (e.g., 'openai', 'anthropic', 'deepseek', 'sentence-transformers', defaults to 'openai')",
+      "model": "string (e.g., 'gpt-4o', 'claude-3-haiku', 'ds-chat-b32', 'multi-qa-MiniLM-L6-cos-v1')",
       "task_type": "string (enum: 'text_generation', 'embedding', 'speech_to_text', 'image_understanding', default: 'text_generation')", // NEW
-      "prompt": "string (nullable, for text_generation, image_understanding)", 
+      "prompt": "string (nullable, for text_generation, image_understanding)",
       "text_to_embed": "string (nullable, for embedding task)",
       "audio_input_url": "string (nullable, for speech_to_text task)",
       "image_input_url": "string (nullable, for image_understanding task)",
-      "system_prompt": "string (optional)", 
-      "history": [ 
+      "system_prompt": "string (optional)",
+      "history": [
         { "role": "user", "content": "Previous message" },
         { "role": "assistant", "content": "Previous response" }
       ],
-      "parameters": { 
+      "parameters": {
         "max_tokens": "integer (optional)",
         "temperature": "float (optional, 0.0-2.0)",
         "top_p": "float (optional, 0.0-1.0)",
@@ -56,7 +56,7 @@ This defines the internal API contract between services like `Agent Service` and
       },
       "user_id": "string (UUID, references User.id)",
       "workspace_id": "string (UUID, references Workspace.id)",
-      "request_id": "string (UUID, for logging and tracing)" 
+      "request_id": "string (UUID, for logging and tracing)"
     }
     ```
 
@@ -67,19 +67,19 @@ This defines the internal API contract between services like `Agent Service` and
           "status": "success",
           "request_id": "string (UUID, mirrors request)",
           "task_type": "string (mirrors request task_type)", // NEW
-          "provider_response": { 
+          "provider_response": {
             "id": "string (provider's response ID)",
             "model_used": "string (actual model that handled the request)", // NEW
             "choices": [ // For text_generation
               {
-                "text": "string (generated text)", 
+                "text": "string (generated text)",
                 "finish_reason": "string (e.g., 'stop', 'length')"
               }
             ],
             "embedding": ["float (nullable, for embedding task)"], // NEW
             "transcription": "text (nullable, for speech_to_text task)", // NEW
             "image_analysis_text": "text (nullable, for image_understanding task)", // NEW
-            "usage": { 
+            "usage": {
               "prompt_tokens": "integer",
               "completion_tokens": "integer (nullable)",
               "total_tokens": "integer"

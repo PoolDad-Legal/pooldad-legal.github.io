@@ -159,7 +159,7 @@ All endpoints listed below are protected and require a valid JWT (obtained from 
             "channelId": "uuid-of-target-channel",
             "content_type": "text", // For demo, primarily 'text'
             "content": {"text": "Hello world!"},
-            "client_message_id": "uuid_generated_by_client (optional, for ack)" 
+            "client_message_id": "uuid_generated_by_client (optional, for ack)"
           }
         }
         ```

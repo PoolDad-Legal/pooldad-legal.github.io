@@ -24,10 +24,10 @@ Below are proposed textual revisions for each Shopify agent n8n workflow.
       "user_id": "uuid", // User who triggered or owns the config
       "effective_config": { // Merged config: AgentConfiguration.yaml_config + runtime_params
         // Specific keys from Agent 004's inputs_schema:
-        "brand_id": "uuid-of-brand-entity", 
+        "brand_id": "uuid-of-brand-entity",
         "min_order_value_threshold": 200.00,
         "watch_products": [ // Example structure
-          {"sku": "TSHIRT-RED-L"}, 
+          {"sku": "TSHIRT-RED-L"},
           {"product_id": "gid://shopify/Product/123456789"},
           {"title_contains": "Limited Edition"}
         ],
@@ -70,7 +70,7 @@ Below are proposed textual revisions for each Shopify agent n8n workflow.
     *   **Body (JSON):**
         ```json
         {
-          "sender_id": "{{ $json.WebhookStart.body.agent_configuration_id }}", 
+          "sender_id": "{{ $json.WebhookStart.body.agent_configuration_id }}",
           "sender_type": "agent",
           "content_type": "markdown", // Or "text", as per agent's output capability
           "content": {"text": "{{ $json.FormatAlertMessage.output.alert_message }}"}
@@ -97,7 +97,7 @@ Below are proposed textual revisions for each Shopify agent n8n workflow.
         {
           "agent_configuration_id": "{{ $json.WebhookStart.body.agent_configuration_id }}",
           "run_id": "{{ $json.WebhookStart.body.run_id }}", // Add run_id
-          "status": "success", 
+          "status": "success",
           "output_preview": "Shopify Sales Sentinel run: No new orders met alert criteria. (Mocked)",
           "full_output_reference": null
         }
@@ -145,11 +145,11 @@ Below are proposed textual revisions for each Shopify agent n8n workflow.
         if (reporting_period === "last_30_days") {
           sales_factor = 4;
         }
-        
+
         let total_sales = parseFloat((Math.random() * 1000 * sales_factor + 500 * sales_factor).toFixed(2));
         let orders = parseInt(Math.random() * 20 * sales_factor + 10 * sales_factor);
         let aov = orders > 0 ? parseFloat((total_sales / orders).toFixed(2)) : 0;
-        
+
         const top_products_list = [];
         for (let i = 0; i < num_top_products; i++) {
           top_products_list.push({
@@ -165,7 +165,7 @@ Below are proposed textual revisions for each Shopify agent n8n workflow.
              title: `Revenue Report (${reporting_period}) - Mocked`,
              total_sales: total_sales,
              average_order_value: aov,
-             total_orders: orders 
+             total_orders: orders
           },
           top_products: top_products_list,
           reporting_period: reporting_period // Keep for context

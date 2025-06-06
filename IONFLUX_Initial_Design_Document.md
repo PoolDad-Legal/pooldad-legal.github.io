@@ -903,7 +903,7 @@ This section provides detailed blueprints for the initial set of core agents in 
 *   **5.2.7. Configurable Parameters (`AgentConfiguration.yaml_config`):**
     ```yaml
     # For a Brand account if it has TikTok connected, or a Creator account
-    # brand_id: "uuid-of-brand-entity" 
+    # brand_id: "uuid-of-brand-entity"
     # creator_id: "uuid-of-creator-entity"
     search_keywords: ["AI tools", "productivity hacks", "future of work"]
     # Optional: provide specific hashtags to analyze further, or let the agent discover them
@@ -914,9 +914,9 @@ This section provides detailed blueprints for the initial set of core agents in 
     num_ideas_per_trend: 3
     output_format: "summary_and_ideas" # "raw_links", "summary_only"
     llm_prompt_template: | # Optional: advanced users can customize the LLM prompt
-      "Based on the following TikTok data: {tiktok_data}, and for a brand in the '{industry_niche}' niche 
-      aiming to '{content_goal}', please identify {num_trends_to_find} key trends 
-      (sounds, hashtags, video styles) and generate {num_ideas_per_trend} distinct content ideas for each. 
+      "Based on the following TikTok data: {tiktok_data}, and for a brand in the '{industry_niche}' niche
+      aiming to '{content_goal}', please identify {num_trends_to_find} key trends
+      (sounds, hashtags, video styles) and generate {num_ideas_per_trend} distinct content ideas for each.
       Present as a markdown list."
     ```
 *   **5.2.8. Dependencies (IONFLUX Services):**
@@ -1040,7 +1040,7 @@ This section provides detailed blueprints for the initial set of core agents in 
     # Optional: if an LLM should assess brand fit
     assess_brand_fit: true
     # llm_brand_fit_prompt: | # Optional: advanced users can customize
-    #   "Given this creator's profile: {creator_data} and our brand focusing on {brand_details}, 
+    #   "Given this creator's profile: {creator_data} and our brand focusing on {brand_details},
     #   rate their potential fit for a UGC campaign on a scale of 1-10 and provide a brief justification."
     # country_filter: ["US", "CA"] # API dependent, may not be feasible
     ```
@@ -1108,19 +1108,19 @@ This section provides detailed blueprints for the initial set of core agents in 
     # monitored_channels:
     #   - channel_id: "uuid-of-general-channel"
     #     trigger_keywords: ["new project", "campaign brief", "task assignment"]
-    
+
     # Default behavior when mentioned or invoked by command
     brief_structure_prompt: | # LLM prompt to define the output structure
-      "Please analyze the following conversation and extract a concise project brief. 
-      Identify the following if available: 
-      1. Project/Campaign Name 
+      "Please analyze the following conversation and extract a concise project brief.
+      Identify the following if available:
+      1. Project/Campaign Name
       2. Key Objectives (1-3 bullet points)
       3. Main Deliverables/Tasks (1-5 bullet points)
       4. Key Stakeholders/Owners
       5. Deadline or Timeline.
       If a field is not mentioned, explicitly state 'Not specified'.
       Format the output as clean markdown."
-      
+
     output_destinations:
       - type: "reply_in_chat" # Default
       # - type: "new_canvas_block"
