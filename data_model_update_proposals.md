@@ -90,7 +90,7 @@ Here are the proposed JSON-like structures for modified entities (`AgentDefiniti
     "updated_at": "timestamp",
     "status": "string (enum: 'active', 'inactive', 'archived', default: 'active')" // Added for lifecycle
   },
-
+  
   "AgentRunLog": { // NEW: To track individual agent executions
     "id": "string (UUID, primary_key, default: uuid_generate_v4())",
     "agent_configuration_id": "string (references AgentConfiguration.id, indexed)",
@@ -115,7 +115,7 @@ Here are the proposed JSON-like structures for modified entities (`AgentDefiniti
     "name": "string (e.g., 'Abandoned Cart Recovery - Aggressive')",
     "description": "text (nullable)",
     "trigger_event_type": "string (e.g., 'shopify_abandoned_cart', 'manual_list_upload')",
-    "steps": "json_array_of_objects",
+    "steps": "json_array_of_objects", 
     // Example step: {"type": "send_whatsapp_message", "template_id": "xyz", "delay_minutes": 10, "condition": "cart_value > 50"}
     // Example step: {"type": "llm_personalize_message", "prompt_template_key": "whatsapp_cart_recovery_tone_X"}
     "is_active": "boolean (default: true)",

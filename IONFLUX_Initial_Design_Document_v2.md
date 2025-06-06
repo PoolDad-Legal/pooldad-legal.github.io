@@ -66,7 +66,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "settings": {
       "default_llm_config": "json_object" // e.g., { "provider": "OpenAI", "model": "gpt-4" }
     },
-    "member_user_ids": ["string (references User.id)"]
+    "member_user_ids": ["string (references User.id)"] 
   },
   "Brand": {
     "id": "string (UUID)",
@@ -90,7 +90,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "tiktok_handle": "string (nullable)",
     "tiktok_access_token": "string (encrypted, nullable)", // If creator connects their own TikTok
     "portfolio_links": ["string (url)"],
-    "audience_demographics": "json_object (nullable)",
+    "audience_demographics": "json_object (nullable)", 
     "created_at": "timestamp",
     "updated_at": "timestamp"
   },
@@ -109,7 +109,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "created_by_user_id": "string (references User.id, indexed)",
     "created_at": "timestamp",
     "updated_at": "timestamp",
-    "tags": ["string (nullable)"]
+    "tags": ["string (nullable)"] 
   },
   "PromptLibrary": {
     "id": "string (UUID)",
@@ -119,101 +119,101 @@ We propose a **Microservices Architecture** for IONFLUX.
     "created_at": "timestamp",
     "updated_at": "timestamp"
   },
-  "AgentDefinition": {
-    "id": "string (UUID or agent_xxx format from blueprints)",
-    "name": "string (unique, e.g., 'EmailWizard', 'ShopifySalesSentinel')",
-    "epithet": "string (nullable, e.g., 'Pulse of the Inbox')",
-    "tagline": "string (nullable)",
-    "introduction_text": "text (nullable)",
-    "archetype": "string (nullable, e.g., 'Magician')",
-    "dna_phrase": "string (nullable, e.g., 'Faz o invisível falar e vender')",
-    "core_capabilities": ["string (nullable)"],
-    "essence_punch": "string (nullable)",
-    "essence_interpretation": "text (nullable)",
-    "version": "string (semver, e.g., '0.1')",
+  "AgentDefinition": { 
+    "id": "string (UUID or agent_xxx format from blueprints)", 
+    "name": "string (unique, e.g., 'EmailWizard', 'ShopifySalesSentinel')", 
+    "epithet": "string (nullable, e.g., 'Pulse of the Inbox')", 
+    "tagline": "string (nullable)", 
+    "introduction_text": "text (nullable)", 
+    "archetype": "string (nullable, e.g., 'Magician')", 
+    "dna_phrase": "string (nullable, e.g., 'Faz o invisível falar e vender')", 
+    "core_capabilities": ["string (nullable)"], 
+    "essence_punch": "string (nullable)", 
+    "essence_interpretation": "text (nullable)", 
+    "version": "string (semver, e.g., '0.1')", 
     "description": "text (High-level description)",
-    "triggers_config": [
+    "triggers_config": [ 
       {
         "type": "string (enum: 'schedule', 'webhook', 'event')",
-        "config": "json_object"
+        "config": "json_object" 
       }
     ],
-    "inputs_schema": [
+    "inputs_schema": [ 
       {
-        "key": "string",
+        "key": "string", 
         "type": "string (enum: 'json', 'string', 'number', 'boolean')",
         "required": "boolean",
         "description": "text (nullable)"
       }
     ],
-    "outputs_config": [
+    "outputs_config": [ 
       {
-        "key": "string",
+        "key": "string", 
         "type": "string (enum: 'json', 'string', 'md', 'url')",
         "description": "text (nullable)"
       }
     ],
-    "stack_details": {
+    "stack_details": { 
       "language": "string (e.g., 'python')",
       "runtime": "string (e.g., 'langchain', 'fastapi')",
-      "models_used": ["string (e.g., 'openai:gpt-4o')"],
-      "database_dependencies": ["string (nullable, e.g., 'Postgres', 'Pinecone')"],
-      "queue_dependencies": ["string (nullable, e.g., 'Redis + RQ', 'Kafka')"],
-      "other_integrations": ["string (nullable, e.g., 'Sendgrid', 'Meta WhatsApp Cloud API')"]
+      "models_used": ["string (e.g., 'openai:gpt-4o')"], 
+      "database_dependencies": ["string (nullable, e.g., 'Postgres', 'Pinecone')"], 
+      "queue_dependencies": ["string (nullable, e.g., 'Redis + RQ', 'Kafka')"], 
+      "other_integrations": ["string (nullable, e.g., 'Sendgrid', 'Meta WhatsApp Cloud API')"] 
     },
-    "memory_config": {
+    "memory_config": { 
       "type": "string (nullable, e.g., 'pinecone', 'redis')",
-      "namespace_template": "string (nullable, e.g., 'emailwizard_instance_{{instance_id}}')"
+      "namespace_template": "string (nullable, e.g., 'emailwizard_instance_{{instance_id}}')" 
     },
-    "default_file_structure_template": "text (nullable)",
-    "key_files_and_paths": "json_object (nullable)",
-    "scheduling_and_triggers_summary": "text (nullable)",
-    "kpis_definition": "text (nullable)",
-    "failure_fallback_strategy": "text (nullable)",
-    "example_integration_flow": "text (nullable)",
-    "dynamic_expansion_notes": "text (nullable)",
-    "escape_the_obvious_feature": "text (nullable)",
-    "underlying_services_required": ["string (enum: 'LLM', 'Shopify', 'TikTok', 'WebSearch', 'Email', 'WhatsApp')"],
-    "category": "string (e.g., 'Marketing', 'Content Creation', 'Sales', 'Productivity')",
+    "default_file_structure_template": "text (nullable)", 
+    "key_files_and_paths": "json_object (nullable)", 
+    "scheduling_and_triggers_summary": "text (nullable)", 
+    "kpis_definition": "text (nullable)", 
+    "failure_fallback_strategy": "text (nullable)", 
+    "example_integration_flow": "text (nullable)", 
+    "dynamic_expansion_notes": "text (nullable)", 
+    "escape_the_obvious_feature": "text (nullable)", 
+    "underlying_services_required": ["string (enum: 'LLM', 'Shopify', 'TikTok', 'WebSearch', 'Email', 'WhatsApp')"], 
+    "category": "string (e.g., 'Marketing', 'Content Creation', 'Sales', 'Productivity')", 
     "created_at": "timestamp",
     "updated_at": "timestamp",
-    "status": "string (enum: 'draft', 'active', 'deprecated', default: 'draft')"
+    "status": "string (enum: 'draft', 'active', 'deprecated', default: 'draft')" 
   },
-  "AgentConfiguration": {
+  "AgentConfiguration": { 
     "id": "string (UUID)",
     "workspace_id": "string (references Workspace.id, indexed)",
-    "agent_definition_id": "string (references AgentDefinition.id, indexed)",
-    "name": "string",
-    "description": "text (nullable)",
-    "created_by_user_id": "string (references User.id, indexed)",
-    "yaml_config": "text (yaml format)",
-    "effective_config_cache": "json_object (nullable)",
-    "external_memory_namespace": "string (nullable)",
-    "last_run_status": "string (enum: 'idle', 'pending', 'running', 'success', 'error', 'cancelled', nullable)",
-    "last_run_at": "timestamp (nullable)",
-    "last_run_id": "string (UUID, nullable)",
-    "last_run_output_preview": "text (nullable)",
-    "last_run_full_output_ref": "string (nullable, URI to full output if stored elsewhere, e.g. S3)",
+    "agent_definition_id": "string (references AgentDefinition.id, indexed)", 
+    "name": "string", 
+    "description": "text (nullable)", 
+    "created_by_user_id": "string (references User.id, indexed)", 
+    "yaml_config": "text (yaml format)", 
+    "effective_config_cache": "json_object (nullable)", 
+    "external_memory_namespace": "string (nullable)", 
+    "last_run_status": "string (enum: 'idle', 'pending', 'running', 'success', 'error', 'cancelled', nullable)", 
+    "last_run_at": "timestamp (nullable)", 
+    "last_run_id": "string (UUID, nullable)", 
+    "last_run_output_preview": "text (nullable)", 
+    "last_run_full_output_ref": "string (nullable, URI to full output if stored elsewhere, e.g. S3)", 
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "status": "string (enum: 'active', 'inactive', 'archived', default: 'active')"
   },
-  "AgentRunLog": {
+  "AgentRunLog": { 
     "id": "string (UUID, primary_key, default: uuid_generate_v4())",
     "agent_configuration_id": "string (references AgentConfiguration.id, indexed)",
-    "run_id": "string (UUID, unique, indexed)",
+    "run_id": "string (UUID, unique, indexed)", 
     "triggered_by_user_id": "string (references User.id, nullable)",
     "trigger_type": "string (enum: 'manual', 'schedule', 'webhook', 'command')",
     "status": "string (enum: 'pending', 'running', 'success', 'error', 'cancelled')",
     "start_time": "timestamp",
     "end_time": "timestamp (nullable)",
-    "input_params_snapshot": "json_object (nullable)",
+    "input_params_snapshot": "json_object (nullable)", 
     "output_preview": "text (nullable)",
     "full_output_ref": "string (nullable, URI to full output)",
     "error_message": "text (nullable)",
     "logs_ref": "string (nullable, URI to detailed logs if stored elsewhere)"
   },
-  "Playbook": {
+  "Playbook": { 
     "id": "string (UUID, primary_key, default: uuid_generate_v4())",
     "agent_definition_id": "string (references AgentDefinition.id, indexed, nullable)",
     "agent_configuration_id": "string (references AgentConfiguration.id, indexed, nullable)",
@@ -221,7 +221,7 @@ We propose a **Microservices Architecture** for IONFLUX.
     "name": "string (e.g., 'Abandoned Cart Recovery - Aggressive')",
     "description": "text (nullable)",
     "trigger_event_type": "string (e.g., 'shopify_abandoned_cart', 'manual_list_upload')",
-    "steps": "json_array_of_objects",
+    "steps": "json_array_of_objects", 
     "is_active": "boolean (default: true)",
     "created_at": "timestamp",
     "updated_at": "timestamp"
@@ -233,47 +233,47 @@ We propose a **Microservices Architecture** for IONFLUX.
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "parent_page_id": "string (references CanvasPage.id, nullable, for nesting)",
-    "icon_url": "string (url, nullable)"
+    "icon_url": "string (url, nullable)" 
   },
   "CanvasBlock": {
     "id": "string (UUID)",
     "page_id": "string (references CanvasPage.id, indexed)",
     "type": "string (enum: 'text', 'chat_bubble', 'agent_snippet', 'embed_panel', 'table_view', 'kanban_board', 'image', 'video', 'shopify_product', 'tiktok_post')",
-    "content": "json_object",
+    "content": "json_object", 
     "position_x": "integer",
     "position_y": "integer",
     "width": "integer",
     "height": "integer",
     "created_at": "timestamp",
     "updated_at": "timestamp",
-    "z_index": "integer (default: 0)"
+    "z_index": "integer (default: 0)" 
   },
   "ChatDockChannel": {
     "id": "string (UUID)",
     "workspace_id": "string (references Workspace.id, indexed)",
     "name": "string",
-    "type": "string (enum: 'public', 'private', 'dm')",
-    "description": "text (nullable)",
-    "member_user_ids": ["string (references User.id, for private/dm channels)"],
+    "type": "string (enum: 'public', 'private', 'dm')", 
+    "description": "text (nullable)", 
+    "member_user_ids": ["string (references User.id, for private/dm channels)"], 
     "created_at": "timestamp",
     "updated_at": "timestamp"
   },
   "ChatMessage": {
     "id": "string (UUID)",
     "channel_id": "string (references ChatDockChannel.id, indexed)",
-    "sender_id": "string (references User.id or AgentConfiguration.id, indexed)",
-    "sender_type": "string (enum: 'user', 'agent')",
+    "sender_id": "string (references User.id or AgentConfiguration.id, indexed)", 
+    "sender_type": "string (enum: 'user', 'agent')", 
     "content_type": "string (enum: 'text', 'markdown', 'json_proposal', 'agent_command_response', 'file_attachment')",
-    "content": "json_object",
+    "content": "json_object", 
     "created_at": "timestamp",
     "thread_id": "string (references ChatMessage.id, optional, for threading, indexed)",
-    "reactions": [
+    "reactions": [ 
       {
         "emoji": "string",
         "user_ids": ["string (references User.id)"]
       }
     ],
-    "read_by_user_ids": ["string (references User.id)"]
+    "read_by_user_ids": ["string (references User.id)"] 
   }
 }
 ```
@@ -641,19 +641,19 @@ This defines the internal API contract between services like `Agent Service` and
 *   **Request to `LLM Orchestration Service`:**
     ```json
     {
-      "provider": "string (e.g., 'openai', 'anthropic', 'deepseek', 'sentence-transformers', defaults to 'openai')",
-      "model": "string (e.g., 'gpt-4o', 'claude-3-haiku', 'ds-chat-b32', 'multi-qa-MiniLM-L6-cos-v1')",
+      "provider": "string (e.g., 'openai', 'anthropic', 'deepseek', 'sentence-transformers', defaults to 'openai')", 
+      "model": "string (e.g., 'gpt-4o', 'claude-3-haiku', 'ds-chat-b32', 'multi-qa-MiniLM-L6-cos-v1')", 
       "task_type": "string (enum: 'text_generation', 'embedding', 'speech_to_text', 'image_understanding', default: 'text_generation')", // NEW
-      "prompt": "string (nullable, for text_generation, image_understanding)",
+      "prompt": "string (nullable, for text_generation, image_understanding)", 
       "text_to_embed": "string (nullable, for embedding task)",
       "audio_input_url": "string (nullable, for speech_to_text task)",
       "image_input_url": "string (nullable, for image_understanding task)",
-      "system_prompt": "string (optional)",
-      "history": [
+      "system_prompt": "string (optional)", 
+      "history": [ 
         { "role": "user", "content": "Previous message" },
         { "role": "assistant", "content": "Previous response" }
       ],
-      "parameters": {
+      "parameters": { 
         "max_tokens": "integer (optional)",
         "temperature": "float (optional, 0.0-2.0)",
         "top_p": "float (optional, 0.0-1.0)",
@@ -661,7 +661,7 @@ This defines the internal API contract between services like `Agent Service` and
       },
       "user_id": "string (UUID, references User.id)",
       "workspace_id": "string (UUID, references Workspace.id)",
-      "request_id": "string (UUID, for logging and tracing)"
+      "request_id": "string (UUID, for logging and tracing)" 
     }
     ```
 
@@ -672,19 +672,19 @@ This defines the internal API contract between services like `Agent Service` and
           "status": "success",
           "request_id": "string (UUID, mirrors request)",
           "task_type": "string (mirrors request task_type)", // NEW
-          "provider_response": {
+          "provider_response": { 
             "id": "string (provider's response ID)",
             "model_used": "string (actual model that handled the request)", // NEW
             "choices": [ // For text_generation
               {
-                "text": "string (generated text)",
+                "text": "string (generated text)", 
                 "finish_reason": "string (e.g., 'stop', 'length')"
               }
             ],
             "embedding": ["float (nullable, for embedding task)"], // NEW
             "transcription": "text (nullable, for speech_to_text task)", // NEW
             "image_analysis_text": "text (nullable, for image_understanding task)", // NEW
-            "usage": {
+            "usage": { 
               "prompt_tokens": "integer",
               "completion_tokens": "integer (nullable)",
               "total_tokens": "integer"
@@ -2366,13 +2366,13 @@ The `AgentConfiguration.yaml_config` serves several key purposes for an agent in
     *   *Example in `yaml_config`*:
         ```yaml
         memory:
-          namespace_suffix: 'my_project_alpha'
+          namespace_suffix: 'my_project_alpha' 
         ```
 4.  **Fixed vs. Configurable Stack Elements:** Generally, the core `AgentDefinition.stack_details` (like language, runtime) are fixed. However, an `AgentDefinition` might declare a list of compatible LLM models (e.g., in `stack_details.models_used`). The `yaml_config` could then allow the user to *select one* from this predefined list for the instance to use, e.g.:
     *   *Example in `yaml_config`*:
         ```yaml
         llm_preference:
-          model: 'anthropic:claude-3-haiku'
+          model: 'anthropic:claude-3-haiku' 
         ```
 The Agent Configuration UI should clearly guide users on what is configurable for their specific agent instance based on its parent `AgentDefinition`.
 

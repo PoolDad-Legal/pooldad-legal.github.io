@@ -74,7 +74,7 @@ This YAML field is for instance-specific settings and input values. It typically
         ```yaml
         inputs:
           target_audience_description: "Tech-savvy early adopters interested in AI."
-          max_results: 10
+          max_results: 10 
         ```
 *   **`triggers:` (Optional)**
     *   **Purpose:** To override user-configurable aspects of triggers defined in `AgentDefinition.triggers_config_json_array`.
@@ -90,7 +90,7 @@ This YAML field is for instance-specific settings and input values. It typically
           - trigger_definition_key: "shopify_order_event"
             config_override:
               event_filter_json: # Specific filter for this instance
-                min_order_value: 100
+                min_order_value: 100 
         ```
 *   **`memory:` (Optional)**
     *   **Purpose:** To customize user-configurable parts of `AgentDefinition.memory_config_json`.
@@ -98,14 +98,14 @@ This YAML field is for instance-specific settings and input values. It typically
     *   *Example (if `default_namespace_template` in definition was `agent_{{agent_id}}_ws_{{workspace_id}}_{{instance_suffix}}`):*
         ```yaml
         memory:
-          instance_suffix: "q4_campaign_analysis"
+          instance_suffix: "q4_campaign_analysis" 
         ```
 *   **`stack_preferences:` (Optional)**
     *   **Purpose:** To select from options if `AgentDefinition.stack_details_json` allows choices (e.g., preferred LLM model).
     *   *Example (if `AgentDefinition` lists compatible LLMs):*
         ```yaml
         stack_preferences:
-          llm_model: "anthropic:claude-3-haiku"
+          llm_model: "anthropic:claude-3-haiku" 
         ```
 *   **`advanced_features:` (Optional, Conceptual for PRM items)**
     *   **Purpose:** To enable/configure experimental modes or specific parameters for features like "Arm Z" testing or RL loops if the `AgentDefinition` supports them.
@@ -196,7 +196,7 @@ This YAML field is for instance-specific settings and input values. It typically
             config_override:
               kafka_topic_name: "custom_shopify_orders_topic_for_my_workspace" # If allowed by platform
               event_filter_json:
-                payload_json.total_price_usd_gt: 100
+                payload_json.total_price_usd_gt: 100 
         ```
 *   **Producing Kafka Events:**
     *   If an `AgentDefinition.outputs_config_json_array` includes an output of `type: 'event'`, the `target_event_type` is usually fixed by the definition (e.g., `ionflux.agent.emailwizard.email_sent`). This would be displayed in the Information Panel.
