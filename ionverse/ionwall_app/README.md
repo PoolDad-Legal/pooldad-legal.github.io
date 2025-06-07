@@ -30,7 +30,7 @@ IONWALL is engineered to fulfill these critical, interconnected roles within the
 *   **1.3. Dynamic Zero-Trust Governance & Access Control (The Adaptive Rule of Law):**
     *   Every significant request (API call, inter-agent communication via NATS, IONPOD data access, IONWALLET transaction initiation, IONVERSE Shard interaction) is intercepted and evaluated by IONWALL's distributed policy engine.
     *   **Policy Engine:** Utilizes **Open Policy Agent (OPA)** executing policies written in **Rego**. Policies are version-controlled in Git and deployed via a GitOps workflow.
-    *   **Evaluation Criteria:** A rich set of inputs, including cryptographic signature verification (SIWE, Passkey attestations), DID authentication, KYC/KYB verification tier, current reputation scores, geofencing rules, heuristic-based rate-limiting (adaptive based on reputation), context-specific permissions granted by users for their agents/data, and anomaly detection flags from the Observability Mesh.
+    *   **Evaluation Criteria:** A rich set of inputs, including cryptographic signature verification (SIWE, Passkey attestations), DID authentication, KYC/KYB verification tier, current reputation scores, geofencing rules, heuristic-based rate-limiting (adaptive based on reputation), context-specific permissions granted by users for their agents/data, and anomaly detection flags from the Observability Mesh. These policy evaluations are often invoked by other IONVERSE services or Agent 000 via the IONVERSE Agent Protocol (IAP).
 
 *   **1.4. Immutable Compliance Proofing & Audit Trail (The Verifiable Record):**
     *   Each access control decision, policy evaluation, consent grant/revocation, and significant reputation change generates an immutable log entry.
@@ -50,7 +50,7 @@ IONWALL's operational cycle is designed to continuously reinforce trust, enable 
     *   Ongoing verification: Re-validates Passkeys, checks for compromised credentials, monitors for sybil behavior.
 
 2.  **Classify (Reputation Scoring & Risk Assessment):**
-    *   The **Reputation Engine** continuously ingests a wide array of data points via NATS event streams from across the ION Super-Hub:
+    *   The **Reputation Engine** continuously ingests a wide array of data points via NATS event streams (IAP `PlatformEvent`s) from across the ION Super-Hub:
         *   `ionwallet.transaction.successful`, `ionwallet.loan.repaid_on_time`
         *   `ionverse.marketplace.trade_completed_positively`, `ionverse.shard.content_highly_rated`
         *   `ionflux.flow.execution_successful_and_efficient`, `ionflux.agent.published_and_adopted`
@@ -60,43 +60,21 @@ IONWALL's operational cycle is designed to continuously reinforce trust, enable 
     *   These inputs are weighted according to a transparent, version-controlled, and potentially DAO-governed **Rego policy set** (the "Reputation Calculation Policy"). The formula is multifaceted, e.g.:
         `ReputationScore = (BaseTrustFromKYC * w1) + (EconomicActivityScore * w2) + (SocialGraphScore * w3) + (CreativeContributionScore * w4) - (NegativeIncidentsScore * w5)`
         Each sub-score is derived from multiple weighted inputs.
-    *   Risk assessment: Simultaneously, IONWALL assesses the risk of incoming requests based on sender reputation, request patterns, and payload heuristics.
+    *   Risk assessment: Simultaneously, IONWALL assesses the risk of incoming requests based on sender reputation, request patterns, and payload heuristics, often as part of an IAP interaction.
 
 3.  **Monetize/Govern (Reputation & Policy as Active Factors):**
-    *   **Economic Impact (Monetize):**
-        *   Reputation scores directly influence economic parameters defined in other ION apps (see Section 15). High reputation can mean lower fees in IONWALLET/Marketplace, better rates in DeFi protocols, higher visibility for created content in IONVERSE, or increased C-ION rewards from IONFLUX.
-    *   **Access Control (Govern):**
-        *   IONWALL's OPA engine evaluates every request against relevant policies (user-defined, sNetwork-wide, regulatory templates).
-        *   Policies use reputation scores, identity attributes (VCs), request context, and risk scores as inputs to make fine-grained allow/deny decisions. Example policy snippet (conceptual Rego):
-            ```rego
-            default allow = false
-            allow {
-                input.request.did == data.assets[input.asset_id].owner_did # Owner access
-            }
-            allow {
-                input.user.reputation_score_fin > 700
-                input.request.resource_type == "premium_api"
-                data.roles[input.user.did].has_role == "staker_tier_2"
-            }
-            ```
+    *   **Economic Impact (Monetize):** Reputation scores directly influence economic parameters defined in other ION apps, often queried or factored in by these applications via IAP. High reputation can mean lower fees in IONWALLET/Marketplace, better rates in DeFi protocols, higher visibility for created content in IONVERSE, or increased C-ION rewards from IONFLUX.
+    *   **Access Control (Govern):** IONWALL's OPA engine evaluates every request (many arriving as IAP calls) against relevant policies. Policies use reputation scores, identity attributes (VCs), request context, and risk scores as inputs to make fine-grained allow/deny decisions.
 
 4.  **Protect (Adaptive Security Enforcement & Incident Response):**
-    *   The **Edge Gateway** (see 3.1) provides first-line defense: WAF, DDoS mitigation, TLS termination.
-    *   WASM plugins at the edge perform initial heuristic analysis, sender reputation checks (IP, DID reputation from global lists), and basic payload inspection for known malicious patterns.
-    *   Requests from low-reputation sources, new DIDs, or those matching suspicious patterns are either rate-limited more aggressively, challenged (e.g., CAPTCHA, MFA step-up via `IONWALL_ActionApproval_Transform`), or routed to a sandboxed "observation" environment before reaching core services.
-    *   If a policy violation is confirmed by OPA, or a high-risk activity is detected by monitoring systems, IONWALL can:
-        *   Block the specific request.
-        *   Temporarily suspend specific capabilities for an Avatar/Agent.
-        *   Trigger alerts to the user and/or relevant Guardian Agents / Hybrid Layer.
-        *   Log the incident comprehensively for audit and future analysis.
+    *   The **Edge Gateway** (see 3.1) provides first-line defense. WASM plugins at the edge perform initial heuristic analysis.
+    *   Requests from low-reputation sources or matching known threat patterns (potentially identified via IAP metadata from the calling agent or user) are either rate-limited more aggressively, challenged (e.g., CAPTCHA, or triggering an `IONWALL_ActionApproval_Transform` flow via IAP), or routed to a sandboxed environment.
+    *   If a policy violation is confirmed by OPA, IONWALL can block the request, suspend capabilities, trigger alerts (potentially as IAP `PlatformEvent`s), and log the incident.
 
 5.  **Evolve (Continuous Learning, Policy & Reputation Model Refinement):**
-    *   All decision logs, policy evaluation results, incident reports, and user feedback on security/reputation are fed into a dedicated **ClickHouse OLAP database** (the "Data Vault," see 3.4).
-    *   Machine learning models (potentially IONFLUX flows themselves) analyze this data to:
-        *   Identify new or evolving threat patterns and attack vectors.
-        *   Suggest refinements to reputation score weightings and formula components.
-        *   Recommend new OPA policy rules or modifications to existing ones for better accuracy, reduced false positives, and improved adaptability.
-    *   Policy updates and reputation model changes are version-controlled (Git) and deployed via a rigorous CI/CD pipeline that includes simulation, backtesting against historical data, and potentially canary releases or A/B testing before full rollout. Community governance (DAO) plays a role in approving significant model changes.
+    *   All decision logs (many related to IAP interactions), incident reports, and user feedback are fed into the ClickHouse Data Vault.
+    *   Machine learning models analyze this data to identify new threat patterns, suggest adjustments to reputation/policy models.
+    *   Policy updates are version-controlled and deployed via GitOps.
 
 ## 3. IMPLEMENTATION — Arquitetura em Camadas (Layered Architecture)
 
@@ -105,15 +83,15 @@ IONWALL's architecture is designed for high availability, resilience, low-latenc
 ```mermaid
 graph LR
     subgraph User/Agent Request Flow
-        A[External/Internal Request] --> B(Edge Gateway: Traefik + WASM Plugins);
+        A[External/Internal Request via IAP/Direct] --> B(Edge Gateway: Traefik + WASM Plugins);
         B --> C{IONWALL Core Services};
     end
 
     subgraph IONWALL Core Services
-        C --> D[Identity Fabric: DID/Passkey/VC Service];
-        C --> E[Reputation Engine: OPA + Scoring Logic];
+        C --> D[Identity Fabric: DID/Passkey/VC Service (IAP Skills)];
+        C --> E[Reputation Engine: OPA + Scoring Logic (IAP Skills)];
         E --> F[Policy Store: Git/IPFS -> OPA Cache];
-        C --> G[Governance & Compliance Engine];
+        C --> G[Governance & Compliance Engine (IAP Skills)];
         G --> H[Audit Trail Service];
         H --> I[Blockchain Anchoring Service];
     end
@@ -123,7 +101,7 @@ graph LR
         J --> G;
         K[Primary DB: PostgreSQL - Configs, Hot Policies] --> E;
         K --> F;
-        L[NATS JetStream: Event Ingestion] --> E;
+        L[NATS JetStream: Event Ingestion (IAP PlatformEvents)] --> E;
         L --> J;
         M[Observability Mesh: Prometheus, Grafana, Loki] --> C;
         M --> B;
@@ -151,91 +129,86 @@ graph LR
 ```
 *   **Scaling Strategy:** Stateless components (Edge Gateway plugins, OPA instances, API services for Identity/Reputation/Governance) are horizontally scalable via Kubernetes HPA. Stateful data stores (PostgreSQL, ClickHouse, NATS) use clustering, read replicas, and partitioning. OPA policies are cached locally on evaluation nodes for low-latency decisions.
 
-### 3.1 Edge Gateway (First Line of Defense & Policy Enforcement Point - PEP)
-*   **Technology:** **Traefik** (or Nginx/Envoy) as the primary reverse proxy, ingress controller, and load balancer.
+### 3.1 Edge Gateway (First Line of Defense & IAP Entry Point)
+*   **Technology:** **Traefik** (or Nginx/Envoy) as the primary reverse proxy, ingress controller, and load balancer. Serves as a primary entry point for many IAP requests to IONWALL services.
 *   **WASM Plugins:** Custom WebAssembly plugins (written in Rust or Go) executed by Traefik for:
-    *   Deep HTTP/GraphQL request inspection (headers, method, path, payload summaries).
-    *   Initial DID/JWT validation (fast path for known valid tokens).
-    *   Heuristic-based threat detection (OWASP Top 10 basics, common bot patterns).
-    *   Dynamic rate limiting enforcement based on data from Redis Cell (see below).
-    *   Routing requests to appropriate IONWALL core services or directly to application backends if policies allow.
-*   **Security Policies (Gateway Level):** Enforces TLS 1.3+ exclusively, HSTS preloading, robust Content Security Policies (CSP) with `strict-dynamic`, XSS protection headers, and other security best practices.
-*   **Rate Limiting & Throttling:** Utilizes **Redis Cell** (token bucket algorithm) or similar distributed rate-limiting solution. Limits can be dynamic, influenced by the requesting entity's reputation score, KYC tier, or specific API endpoint policies managed by OPA.
+    *   Deep HTTP/GraphQL request inspection.
+    *   Initial DID/JWT validation (from IAP calls).
+    *   Heuristic-based threat detection.
+    *   Dynamic rate limiting enforcement.
+    *   Routing IAP requests to appropriate IONWALL core services.
+*   **Security Policies (Gateway Level):** Enforces TLS 1.3+, HSTS, CSP, etc.
+*   **Rate Limiting & Throttling:** Utilizes **Redis Cell** or similar, with limits influenced by reputation scores of the calling agent/user DID.
 
-### 3.2 Identity Fabric (The "Who Are You?" Layer)
-*   **Primary Authentication Service:**
-    *   Handles **FIDO2 Passkey (WebAuthn)** registration and authentication ceremonies.
-    *   Interfaces with device secure enclaves (iOS Secure Enclave, Android StrongBox) or roaming authenticators.
-    *   Issues short-lived JWTs or session tokens upon successful Passkey authentication, containing the user's DID and key attestation info.
-*   **Decentralized Identifier (DID) Management:**
-    *   **IONID Service:** Manages the lifecycle of `did:ionid:*` DIDs (creation, resolution, updates to DID Documents).
-    *   DID Documents are stored on IPFS (via IONPOD) and contain public keys, service endpoints (e.g., for IONPOD, social profiles), and links to Verifiable Credentials.
-    *   Resolver component for `did:ionid` that can be run locally by agents or accessed via a trusted sNetwork resolver.
-*   **Verifiable Credential (VC) Service:**
-    *   Issues VCs for KYC/KYB attestations, platform achievements (linked to Badge Motivator agent), or other verified claims.
-    *   Verifies VCs presented by users or other agents using DID keys and VC schemas.
-    *   (Storage of VCs is primarily in the user's IONPOD, IONWALL manages their issuance and verification framework).
-*   **On-Chain Identity Linkage (ERC-4337):**
-    *   Service that links a user's DID/Passkeys to their ERC-4337 smart contract wallet address on Base L2 (managed by IONWALLET). This allows on-chain actions to be associated with the user's holistic reputation.
-    *   May involve a registry smart contract or use of ZK-proofs for privacy-preserving linkage if needed.
+### 3.2 Identity Fabric (The "Who Are You?" Layer & IAP Provider)
+*   **Primary Authentication Service:** Handles Passkey ceremonies. Issues JWTs containing DID.
+*   **Decentralized Identifier (DID) Management:** IONID Service for `did:ionid:*` lifecycle. DID Docs on IPFS.
+*   **Verifiable Credential (VC) Service:** Issues and verifies VCs. This service exposes IAP skills like `issueAttestation(subjectDid, claim, attesterId)` and `verifyCredential(holderDid, vc)`.
+*   **On-Chain Identity Linkage (ERC-4337):** Links DID/Passkeys to ERC-4337 smart wallets via IONWALLET.
 
-### 3.3 Reputation Engine (The "Are You Trustworthy?" Layer)
-*   **Policy Engine Core:**
-    *   **Open Policy Agent (OPA):** Multiple instances of OPA running as sidecars or a distributed service. OPA evaluates incoming requests (from Edge Gateway or internal services) against Rego policies.
-    *   **Policy Store & Distribution:** Rego policies defining reputation calculation logic, access control rules, and risk thresholds are version-controlled in a Git repository. A GitOps pipeline (e.g., ArgoCD, Flux) automatically deploys policy bundles to OPA instances or a central distribution point (e.g., an S3 bucket OPA polls, or NATS). Policies are cached in OPA for low-latency evaluation.
-*   **Reputation Data Ingestion & Processing Service:**
-    *   Subscribes to relevant NATS topics (e.g., `ionverse.*`, `ionflux.*`, `ionwallet.*`, `ionpod.*`) for events that signify reputation-impacting behavior.
-    *   Parses and validates these events.
-    *   Feeds event data into the **Reputation Scoring Logic** (itself a set of Rego policies or a dedicated microservice using the OPA SDK).
-    *   Handles batch updates and potentially real-time stream processing (e.g., Deno functions, Apache Flink, or ksqlDB on Kafka if NATS is bridged) for continuous score recalculation.
-*   **Reputation Score Storage & Attestation:**
-    *   Current reputation scores (and their sub-components) are stored in PostgreSQL for fast querying by OPA during policy evaluation.
-    *   Periodically (e.g., daily or on significant change), reputation states or achievements are attested to on Base L2 via the **Blockchain Anchoring Service**. This could be a Merkle root of many users' reputation data, or individual attestations for high-rep users/milestones.
+### 3.3 Reputation Engine (The "Are You Trustworthy?" Layer & IAP Provider)
+*   **Policy Engine Core (OPA):** Evaluates requests against Rego policies. Policies fetched from Git/IPFS via Policy Store.
+*   **Reputation Data Ingestion & Processing Service:** Subscribes to NATS IAP `PlatformEvent`s. Feeds data to Reputation Scoring Logic (Rego/microservice).
+*   **Reputation Score Storage & Attestation:** Scores in PostgreSQL for OPA. Attestations to Base L2. This engine exposes IAP skills like `getReputationScore(targetDid, scoreTypes)`.
 
 ### 3.4 Data Vault (The Immutable Record & Analytical Mind)
-*   **Primary Audit Log Store (Immutable):**
-    *   **ClickHouse (OLAP Database):** Chosen for its high-throughput ingestion and analytical querying capabilities. Stores all IONWALL decision logs (allow/deny, policy that matched, input parameters summary), consent records (from `IONWALL_ActionApproval_Transform`), detailed reputation score change events (previous score, new score, contributing factors), and security incident reports.
-    *   Data is partitioned by `toDate(event_timestamp)` and potentially by `user_did` or `event_type`.
-    *   Designed for write-once, read-many, with strong integrity checks.
-*   **Blockchain Anchoring Service:**
-    *   Periodically takes Merkle roots of recent audit log batches from ClickHouse (or from a staging area where logs are first aggregated).
-    *   Publishes these roots to a dedicated smart contract on Base L2, creating a tamper-evident, publicly verifiable timestamp and proof of existence for the audit trail.
-*   **Analytics & ML Feedback Loop:**
-    *   IONFLUX agents or dedicated data science workflows query ClickHouse to analyze historical data for threat pattern detection, policy effectiveness analysis, reputation model backtesting, and anomaly detection.
-    *   Insights from these analyses are used to propose updates to OPA policies and reputation scoring algorithms (the "Evolve" part of the value loop).
+*   **Primary Audit Log Store (ClickHouse):** Stores all IONWALL decision logs, consent records, reputation changes, security incidents.
+*   **Blockchain Anchoring Service:** Periodically anchors Merkle roots of audit logs to Base L2.
+*   **Analytics & ML Feedback Loop:** IONFLUX agents query ClickHouse for analysis to refine policies and models.
 
-### 3.5 Governance & Compliance Engine (The Rule Setter & Enforcer)
-*   **Policy Management Interface/Service:**
-    *   Provides tools (UI for admins/policy analysts, APIs for GitOps) to create, test, version, and deploy Rego policies for OPA.
-    *   Manages different policy sets (e.g., sNetwork global policies, user-overridable preference policies, application-specific policies).
-*   **Consent Management Service:**
-    *   Tracks user consents granted via `IONWALL_ActionApproval_Transform` or broader consents for agent capabilities (e.g., "allow Agent X to read all files in /my_photos/").
-    *   Provides interfaces for users to review and revoke their consents (via IONPOD or a dedicated privacy dashboard).
-    *   OPA policies query this service (or its replicated data) to check for active consent during request evaluation.
-*   **Regulatory Compliance Module:**
-    *   Contains specific OPA policy sets and data handling procedures designed to meet requirements of regulations like GDPR, LGPD, CCPA (e.g., data subject access requests, right to be forgotten processing – which is complex with immutable logs but can mean de-identification or access cessation).
-    *   Facilitates generation of compliance reports from the audit trail in the Data Vault.
+### 3.5 Governance & Compliance Engine (The Rule Setter & Enforcer & IAP Provider)
+*   **Policy Management Interface/Service:** Tools for Rego policy lifecycle management (create, test, version, deploy via GitOps).
+*   **Consent Management Service:** Tracks user consents (from `IONWALL_ActionApproval_Transform` IAP calls and others). OPA queries this for active consent. Exposes IAP skills like `requestUserConsent(requesterDid, actionDescription, detailsCid, scopes)`.
+*   **Regulatory Compliance Module:** Specific OPA policy sets for GDPR, LGPD, CCPA. Facilitates compliance reporting.
+*   **Audit Service Interface:** Exposes an IAP skill like `logAuditEvent(eventDetails, actorDid)` for other services/agents to securely log critical events to IONWALL's immutable log.
 
 ### 3.6 Observability Mesh (The Watchtower) - *Implementation Details*
-*   **Metrics:** Prometheus scraping metrics from all IONWALL services (OPA, Identity services, Edge Gateway, etc.) and the underlying infrastructure (Kubernetes, databases). Key metrics: request latency, error rates per policy/service, reputation calculation times, OPA evaluation latency.
-*   **Logging:** Loki for centralized logging, as described for other apps. Fluentd or Vector used as log shippers from various components.
-*   **Tracing:** OpenTelemetry for distributed tracing of requests as they flow through Edge Gateway and multiple IONWALL microservices (e.g., Identity -> Reputation -> OPA -> Response). Visualized in Jaeger or Grafana Tempo.
-*   **Dashboards:** Grafana dashboards tailored for IONWALL: overall security posture, policy hit counts, reputation score distributions, incident rates, system performance.
+*   As previously detailed: Prometheus, Grafana, Loki, OpenTelemetry/Tempo, Alertmanager. Tailored dashboards for IONWALL.
 
 ### 3.7 DevSecOps (Secure Foundations & Operations)
-*   **CI/CD Pipeline Security:** Static Application Security Testing (SAST) (e.g., Semgrep, SonarQube for policy code), Dynamic Application Security Testing (DAST) for APIs, container vulnerability scanning (e.g., Trivy, Clair), dependency checking (e.g., Dependabot, Snyk) integrated into GitHub Actions.
-*   **Infrastructure as Code (IaC) Security:** Policies and checks for Terraform/Pulumi scripts (e.g., Checkov, tfsec) to ensure secure cloud configurations.
-*   **Secret Management:** HashiCorp Vault or cloud provider KMS for managing all secrets (API keys for external services like KYC providers, database credentials, NATS credentials). OPA policies and services fetch secrets from Vault as needed, with short-lived leases.
-*   **GitOps for Policy Deployment:** Rego policies and OPA configurations are managed in Git. Changes trigger a CI/CD pipeline that tests and deploys policies to OPA instances, ensuring versioning and auditability of policy changes.
-*   **Regular Security Audits & Penetration Testing:** Performed by specialized third-party firms.
+*   As previously detailed: CI/CD Security (SAST, DAST, vulnerability scanning), IaC Security, Secret Management (Vault), GitOps for policies, regular audits/pen-tests.
+
+## 3.bis. IONWALL & The IONVERSE Agent Protocol (IAP)
+
+IONWALL is not just a passive enforcer but an active participant and crucial service provider within the IONVERSE Agent Protocol (IAP) ecosystem. Its functionalities are exposed as well-defined services that other agents, including Agent 000 and IONFLUX agents, rely upon for secure and reputation-aware operations.
+
+*   **Discoverability:** IONWALL's IAP-accessible services are discoverable. Conceptually, an "IONWALL Service Agent Card" (derived from a specialized `AgentDefinition` or a service registry) would describe its available skills, endpoints, and required input/output schemas for Agent 000 and other IAP clients.
+*   **Key IAP Skills/Endpoints Exposed by IONWALL (Conceptual Examples):**
+    *   **`skillId: "getReputationScore"`**
+        *   `params: { "targetDid": "did:ionid:...", "scoreTypes": ["overall", "Score.Fin", "Score.Social"] }`
+        *   Returns the requested reputation scores for a given DID.
+    *   **`skillId: "evaluatePolicyForAction"`**
+        *   `params: { "requesterDid": "did:ionid:...", "targetResourceCidOrUri": "...", "actionAttempted": "read_private_data", "contextAttributes": { ... } }`
+        *   Returns an allow/deny decision based on OPA evaluation, including policies matched and reasons. This is the core of Zero-Trust Governance.
+    *   **`skillId: "requestUserConsent"` (interfaces with `IONWALL_ActionApproval_Transform`'s backend logic)**
+        *   `params: { "requesterDid": "did:ionid:...", "actionDescriptionText": "...", "actionDetailsCid": "...", "requiredScopes": ["..."] }`
+        *   Initiates a user consent flow via IONWALL's trusted UI, returns approval status.
+    *   **`skillId: "logAuditEvent"`**
+        *   `params: { "eventDetails": { ...custom event structure... }, "actorDid": "did:ionid:...", "severity": "info|warning|critical" }`
+        *   Allows other authorized agents/services to write significant events to IONWALL's immutable audit trail.
+    *   **`skillId: "verifyCredentialPresentation"`**
+        *   `params: { "holderDid": "did:ionid:...", "verifiablePresentation": { ...VP JWT or JSON-LD... } }`
+        *   Verifies the authenticity and integrity of a Verifiable Credential presentation.
+    *   **`skillId: "issueIdentityAttestation"`** (for KYC/KYB, etc.)
+        *   `params: { "subjectDid": "did:ionid:...", "claimType": "kyc_tier_gold", "evidenceCids": ["..."] }`
+        *   Initiates the process for IONWALL (or a delegated issuer) to issue a VC/attestation to a user after due process.
+*   **IONWALL as IAP Event Consumer & Producer (NATS):**
+    *   **Consumes `PlatformEvent`s:** IONWALL's Reputation Engine subscribes to a multitude of `PlatformEvent`s from across the IONVERSE (e.g., `ionwallet.transaction.completed`, `ionverse.marketplace.trade_disputed`, `ionflux.agent.execution_failed`) to gather data for reputation scoring.
+    *   **Produces `PlatformEvent`s:** IONWALL publishes its own critical events to NATS for other agents or services to consume:
+        *   `ionwall.reputation.score_updated` (Payload: `{ userDid, newScores, oldScores, reason }`)
+        *   `ionwall.policy.violation_detected` (Payload: `{ userDid, agentId, action, policyId, severity }`)
+        *   `ionwall.security.threat_level_changed` (Payload: `{ newLevel, details }`)
+        *   `ionwall.consent.granted_or_revoked` (Payload: `{ userDid, scope, status }`)
+*   **Overarching Security:** All IAP interactions with IONWALL services are, by definition, subject to IONWALL's own rigorous authentication (mTLS for service-to-service, JWTs for agent/user context) and authorization (OPA policy checks on the IAP call itself). An agent cannot query reputation or request policy evaluation without proper permissions.
+*   **Further Details:** The specific schemas and nuances of these IAP interactions are further detailed in the main **[IONVERSE Agent Protocol Specification](../specs/IONVERSE_AGENT_PROTOCOL.md)**.
 
 ## 4. HOW‑TO‑IMPLEMENT (Kickstart & Hands‑On for Developers)
 
 This guides developers interacting with or contributing to IONWALL.
 
 1.  **Understand Core Concepts:**
-    *   **Action:** Deeply read IONWALL `README.md` (this file), especially Sections 0, 1, 2. Study `specs/transforms/IONWALL_ActionApproval_Transform.md`. Review example OPA/Rego policies if available.
-    *   **Goal:** Grasp Zero-Trust, Reputation-as-Capital, Passkeys/DIDs, and how IONWALL mediates requests.
+    *   **Action:** Deeply read IONWALL `README.md` (this file), especially Sections 0, 1, 2, and 3.bis. Study `specs/transforms/IONWALL_ActionApproval_Transform.md`. Review example OPA/Rego policies if available.
+    *   **Goal:** Grasp Zero-Trust, Reputation-as-Capital, Passkeys/DIDs, IAP integration, and how IONWALL mediates requests.
 
 2.  **Local IONWALL Mock/Dev Instance:**
     *   **Action:** The IONVERSE `docker-compose.yml` should include a minimal OPA instance and potentially mock services for Identity/Reputation for local development of other apps. For IONWALL core devs, a more complete local setup is needed.
@@ -248,19 +221,19 @@ This guides developers interacting with or contributing to IONWALL.
     *   `opa eval --data your_policy.rego --input sample_input.json "data.your_package.allow"`
     *   **Goal:** Get hands-on with Rego syntax and OPA evaluation.
 
-4.  **Integrate IONWALL Check in a Mock Agent/Service:**
-    *   **Action:** Create a simple Deno/Node.js script that simulates an agent making a request. Before performing its "action," have it make an HTTP request to your local OPA instance's `/v1/data/...` endpoint, sending relevant context as input.
-    *   Based on OPA's JSON response (`{"result": {"allow": true/false, ...}}`), decide whether to proceed.
-    *   **Goal:** Understand how applications query OPA for policy decisions.
+4.  **Integrate IONWALL Check in a Mock Agent/Service (IAP Client):**
+    *   **Action:** Create a simple Deno/Node.js script that simulates an agent making a request. Before performing its "action," have it make an HTTP IAP call (JSON-RPC `message/send` with `skillId: "evaluatePolicyForAction"`) to your local OPA/mock-IONWALL endpoint, sending relevant context as input.
+    *   Based on the JSON-RPC response, decide whether to proceed.
+    *   **Goal:** Understand how applications query IONWALL for policy decisions via IAP.
 
 5.  **Explore Passkey/WebAuthn Integration (Client-Side):**
     *   **Action:** Use a library like `@simplewebauthn/browser` in a simple Next.js/React frontend to implement Passkey registration and login flows. The backend would interface with IONWALL's Identity Fabric services to store/verify credentials.
     *   **Goal:** Understand the client-side mechanics of passwordless authentication that IONWALL leverages.
 
-6.  **Inspect NATS Events for Reputation Engine:**
+6.  **Inspect NATS IAP `PlatformEvent`s for Reputation Engine:**
     *   **Action:** If local NATS is running and other ION apps are generating events, use `nats-cli` to subscribe to topics like `ionwallet.transaction.completed` or `ionverse.moderation.strike_issued`.
-    *   Observe the structure of these events, as they would be inputs to the Reputation Engine.
-    *   **Goal:** Understand the data sources for reputation calculation.
+    *   Observe the structure of these `PlatformEvent`s, as they would be inputs to the Reputation Engine.
+    *   **Goal:** Understand the data sources for reputation calculation via IAP.
 
 7.  **Contribute to Policy Development (Conceptual):**
     *   **Action:** Identify a use case in an ION app (e.g., IONFLUX agent needs to access a sensitive IONPOD resource). Draft a Rego policy snippet that would govern this, considering user roles, reputation scores, and resource sensitivity.
@@ -285,7 +258,7 @@ IONWALL's stack is chosen for security, performance, scalability, and policy exp
 *   **Identity (FIDO2 Passkeys, DIDs - `did:ionid`, ERC-4337 via IONWALLET):**
     *   **Rationale:** Passkeys for phishing-resistant, passwordless UX. DIDs for decentralized, sovereign identity. ERC-4337 for linking web3 activity to this identity via smart contract wallets, enabling gas abstraction and social recovery.
     *   **Trade-offs:** Passkey adoption is still growing. DID/VC ecosystem is maturing. ERC-4337 adds smart contract risk and complexity.
-*   **Reputation Data Ingestion (NATS JetStream):**
+*   **Reputation Data Ingestion (NATS JetStream for IAP `PlatformEvent`s):**
     *   **Rationale:** High-performance, persistent event streaming for decoupling reputation event sources from the Reputation Engine. Supports at-least-once delivery.
 *   **Audit Log Store (ClickHouse OLAP Database):**
     *   **Rationale:** Optimized for high-volume ingestion and fast analytical queries on large datasets, perfect for audit logs and security analytics. Columnar storage is efficient for this use case.
@@ -300,15 +273,15 @@ IONWALL's stack is chosen for security, performance, scalability, and policy exp
 Key IONWALL-specific files and directories within the `ionverse_superhub` monorepo:
 
 *   **`ionverse/services/ionwall_core/`**: Main backend services for IONWALL.
-    *   `identity_fabric/`: Services for Passkey auth, DID management, VC issuance/verification.
-    *   `reputation_engine/`: Logic for score calculation, event ingestion from NATS.
-    *   `governance_engine/`: OPA policy distribution, consent management service.
-    *   `audit_service/`: Service for writing to ClickHouse and anchoring to blockchain.
+    *   `identity_fabric/`: Services for Passkey auth, DID management, VC issuance/verification (exposing IAP skills).
+    *   `reputation_engine/`: Logic for score calculation, event ingestion from NATS (consuming IAP `PlatformEvent`s), OPA integration (exposing IAP skills like `getReputationScore`).
+    *   `governance_engine/`: OPA policy distribution, consent management service (exposing IAP skills like `requestUserConsent`).
+    *   `audit_service/`: Service for writing to ClickHouse and anchoring to blockchain (may expose IAP skill `logAuditEvent`).
 *   **`ionverse/policies/ionwall_rego/`**: Git repository (or submodule) containing all Rego policies.
     *   `identity/`, `reputation/`, `access_control/`, `snetwork_global/` subdirectories for policy organization.
 *   **`ionverse/edge_plugins/ionwall_traefik_wasm/`**: Source code for custom WASM plugins for Traefik.
-*   **`ionverse/packages/ionwall_sdk/`**: Client SDK (TypeScript) for internal ION apps to easily interact with IONWALL APIs or OPA decision points.
-*   **`ionverse/packages/types_schemas_ionwall/`**: TypeScript types and Zod/JSON schemas for IONWALL API requests, responses, event payloads, and policy inputs.
+*   **`ionverse/packages/ionwall_sdk/`**: Client SDK (TypeScript) for internal ION apps to easily interact with IONWALL IAP skills or OPA decision points.
+*   **`ionverse/packages/types_schemas_ionwall/`**: TypeScript types and Zod/JSON schemas for IONWALL API requests, responses, IAP `PlatformEvent` payloads it consumes/produces, and policy inputs.
 *   **`ionverse/infra/k8s/ionwall/`**: Kubernetes manifests / Helm chart for deploying IONWALL services.
 *   **`ionverse/db/migrations/ionwall_postgres/` & `ionwall_clickhouse/`**: Database schema migrations.
 
@@ -318,8 +291,8 @@ Key IONWALL-specific files and directories within the `ionverse_superhub` monore
 *   **Identity Logic Extensions:** Within `ionverse/services/ionwall_core/identity_fabric/`.
 *   **Reputation Algorithm Changes:** Modifications to services in `ionverse/services/ionwall_core/reputation_engine/` and corresponding Rego policies.
 *   **WASM Plugin Code:** In `ionverse/edge_plugins/`.
-*   **Shared Types/Schemas:** In `ionverse/packages/types_schemas_ionwall/`.
-*   **Client Interaction Logic (if building a new ION app):** Use or extend the `ionwall_sdk`.
+*   **Shared Types/Schemas for IAP:** In `ionverse/packages/types_schemas_ionwall/` or a global IAP types package.
+*   **Client Interaction Logic (if building a new ION app):** Use or extend the `ionwall_sdk` to call IONWALL's IAP skills.
 
 ## 8. DATA STORE — ERD (Entity Relationship Diagram - Prose for IONWALL)
 
@@ -332,9 +305,9 @@ IONWALL utilizes PostgreSQL for configuration and "hot" operational data, and Cl
 *   **`consent_records_active`**: `consent_id` (PK), `user_did`, `requesting_agent_id_or_scope`, `granted_scopes_json_array`, `expires_at` (nullable), `consent_receipt_cid_ref` (links to immutable proof in ClickHouse/IPFS). (For active, frequently checked consents).
 
 **ClickHouse (`ionwall_data_vault` - All events are append-only):**
-*   **`audit_log_entries`**: `event_id` (UUID), `timestamp_usec_utc`, `event_type` (e.g., "api_request_evaluated", "reputation_score_updated", "identity_verified"), `user_did_actor`, `user_did_target` (if different), `service_name_source`, `policy_ids_evaluated_array_string`, `decision_result` (allow, deny, challenged), `input_parameters_summary_json`, `context_tags_map_string_string`. (The core immutable log).
-*   **`reputation_change_log`**: `log_id` (UUID), `timestamp_usec_utc`, `user_did`, `previous_score_overall`, `new_score_overall`, `contributing_event_ids_array_uuid` (links to `audit_log_entries`), `reason_code_or_description_cid`.
-*   **`consent_interaction_log`**: `interaction_id` (UUID, from `IONWALL_ActionApproval_Transform`), `timestamp_usec_utc`, `user_did`, `requesting_agent_name`, `action_description_text_hash`, `action_details_cid_if_any`, `scopes_requested_array_string`, `user_decision` (approved, denied, timed_out), `user_comment_if_any`, `consent_receipt_cid` (this CID is the proof).
+*   **`audit_log_entries`**: `event_id` (UUID), `timestamp_usec_utc`, `event_type` (e.g., "api_request_evaluated", "reputation_score_updated", "identity_verified", "iap_skill_invoked"), `user_did_actor`, `user_did_target` (if different), `service_name_source`, `policy_ids_evaluated_array_string`, `decision_result` (allow, deny, challenged), `input_parameters_summary_json`, `context_tags_map_string_string`. (The core immutable log).
+*   **`reputation_change_log`**: `log_id` (UUID), `timestamp_usec_utc`, `user_did`, `previous_score_overall`, `new_score_overall`, `contributing_event_ids_array_uuid` (links to `audit_log_entries` or IAP `PlatformEvent` IDs), `reason_code_or_description_cid`.
+*   **`consent_interaction_log`**: `interaction_id` (UUID, from `IONWALL_ActionApproval_Transform` or IAP `requestUserConsent` skill), `timestamp_usec_utc`, `user_did`, `requesting_agent_name`, `action_description_text_hash`, `action_details_cid_if_any`, `scopes_requested_array_string`, `user_decision` (approved, denied, timed_out), `user_comment_if_any`, `consent_receipt_cid` (this CID is the proof).
 
 **Relationships:**
 *   `users_identity_map` is central. `reputation_scores_live` and `consent_records_active` link to it via `user_did`.
@@ -402,20 +375,20 @@ IONWALL itself processes specific types of internal "tasks" or handles requests 
 1.  **AuthenticateUser (`did:ionid`, Passkey):**
     *   **Description:** Verifies a user's Passkey credential against their registered DID, issues a session JWT.
     *   **Latency SLA (Target):** 50-200ms (depends on client-side WebAuthn ceremony and network).
-2.  **EvaluateActionPolicy (OPA Evaluation):**
+2.  **EvaluateActionPolicy (OPA Evaluation / IAP Skill):**
     *   **Description:** Takes a request context (user DID, reputation, resource, action) and evaluates it against loaded Rego policies.
     *   **Latency SLA (Target):** 5-50ms (OPA is designed to be very fast; depends on policy complexity and data fetching for context).
 3.  **UpdateReputationScore (Batch or Stream):**
-    *   **Description:** Ingests reputation-affecting events, recalculates a user's score based on defined formula.
+    *   **Description:** Ingests reputation-affecting events (often IAP `PlatformEvent`s), recalculates a user's score based on defined formula.
     *   **Latency SLA (Target):** Variable. Real-time updates for critical events might be <1s; full batch recalculation might take minutes for many users but individual score updates should be fast once triggered.
-4.  **RecordAuditEvent (to ClickHouse & Anchor):**
+4.  **RecordAuditEvent (to ClickHouse & Anchor / IAP Skill):**
     *   **Description:** Writes a detailed audit log entry to ClickHouse. Periodically, a batch of Merkle roots of these logs is anchored to L2.
     *   **Latency SLA (Target):** <50ms for ClickHouse write; anchoring is an asynchronous batch process.
-5.  **IssueVerifiableCredential (e.g., for KYC Tier):**
+5.  **IssueVerifiableCredential (e.g., for KYC Tier / IAP Skill):**
     *   **Description:** Generates and signs a VC for a user, making it available in their IONPOD.
     *   **Latency SLA (Target):** <500ms.
-6.  **ProcessUserConsentRequest (via `IONWALL_ActionApproval_Transform` flow):**
-    *   **Description:** Receives request from transform, presents to user via trusted UI, awaits response, records consent.
+6.  **ProcessUserConsentRequest (via `IONWALL_ActionApproval_Transform` flow / IAP Skill):**
+    *   **Description:** Receives request from transform/IAP call, presents to user via trusted UI, awaits response, records consent.
     *   **Latency SLA (Target):** User-dependent, but system timeout usually 60-300 seconds. IONWALL's own processing part <100ms.
 
 ## 13. APPLE & ANDROID PUBLISHING PLAYBOOK (Implications for Mobile Apps)
@@ -424,20 +397,20 @@ While IONWALL is primarily a backend service fabric, its functionality has signi
 
 *   **Passkey Integration:** Mobile apps *must* correctly implement native Passkey APIs (e.g., `ASAuthorizationController` on iOS, Credential Manager API on Android) and securely communicate Passkey attestations to IONWALL's Identity Fabric for registration and authentication. This is a core part of the user login/auth UX.
 *   **Secure Storage for Session Tokens:** After successful Passkey authentication via IONWALL, mobile apps receive a session JWT. This token must be stored securely on the device (e.g., iOS Keychain, Android Keystore).
-*   **In-App Display of IONWALL Prompts:** When an `IONWALL_ActionApproval_Transform` is used by a mobile agent flow, or when IONWALL needs to step-up auth, the mobile app must have a way to display these IONWALL-originated prompts securely. This could be via:
+*   **In-App Display of IONWALL Prompts:** When an `IONWALL_ActionApproval_Transform` is used by a mobile agent flow, or when IONWALL needs to step-up auth (or an IAP `requestUserConsent` skill is invoked), the mobile app must have a way to display these IONWALL-originated prompts securely. This could be via:
     *   A webview rendering a trusted IONWALL page.
     *   A native UI component that securely loads prompt content from IONWALL.
     *   Push notifications that deep-link into a specific IONWALL approval section of the app or a companion IONWALLET app.
-*   **Privacy Manifests & Justifications (Apple):** Mobile apps must declare the types of data they collect and the reasons for that collection in privacy manifests. If IONWALL policies or monitoring lead to data collection that needs declaration (e.g., for security analytics, fraud prevention), this must be accurately reflected. API calls to IONWALL services must be justified (e.g., "required reason API" usage).
+*   **Privacy Manifests & Justifications (Apple):** Mobile apps must declare the types of data they collect and the reasons for that collection in privacy manifests. If IONWALL policies or monitoring lead to data collection that needs declaration (e.g., for security analytics, fraud prevention), this must be accurately reflected. API calls to IONWALL services (including IAP calls for policy checks or reputation) must be justified (e.g., "required reason API" usage).
 *   **User Data Access & Control:** Mobile UIs should provide interfaces (likely within IONPOD sections) for users to view their reputation scores, review active consents managed by IONWALL, and initiate data access/erasure requests as per GDPR/LGPD, which IONWALL would process.
-*   **Transparency:** Clearly explain to users how IONWALL uses their data for reputation and security, and how they can control permissions.
+*   **Transparency:** Clearly explain to users how IONWALL uses their data for reputation and security, and how they can control permissions. This is vital for app store approval.
 
 ## 14. SECURITY & COMPLIANCE (Expanded Measures for IONWALL itself)
 
 IONWALL is the security backbone; its own protection is paramount.
 
 *   **Service Hardening:** All IONWALL microservices run with minimal privileges, in hardened containers, on patched OS, with network segmentation (strict NetworkPolicies in Kubernetes).
-*   **API Security (Internal & External):** All IONWALL APIs use mTLS for service-to-service authentication. External-facing APIs (e.g., for OPA queries from other sNetwork services) are protected by the Edge Gateway. Strict input validation on all APIs.
+*   **API Security (Internal & External via IAP):** All IONWALL APIs (including IAP skill endpoints) use mTLS for service-to-service authentication. External-facing APIs are protected by the Edge Gateway. Strict input validation on all APIs.
 *   **OPA Policy Security:** Rego policies are linted, tested (unit tests with `opa test`), and code-reviewed before deployment via GitOps. Access to the policy Git repository is tightly controlled. Consider signing policy bundles.
 *   **Data Vault Integrity:** ClickHouse audit logs are append-only. Access controls on ClickHouse are extremely strict. Blockchain anchoring of Merkle roots ensures public verifiability of log integrity against tampering.
 *   **Credential Management for IONWALL Services:** Database passwords, NATS credentials, API keys for external services (like KYC providers) used by IONWALL itself are stored in HashiCorp Vault and accessed with short-lived leases by services.
@@ -452,7 +425,7 @@ IONWALL itself does not have its own distinct token. Instead, it plays a crucial
 *   **Reputation Affects Costs & Access:**
     *   **Reduced C-ION Costs:** Users with higher IONWALL reputation scores (e.g., `Score.Overall` or specific sub-scores like `Score.ComputeEfficiency`) may receive preferential rates when converting ION to C-ION, or pay slightly less C-ION for certain IONFLUX agent executions. This incentivizes positive platform behavior.
     *   **Lower Platform Fees:** IONWALL reputation can influence fees on the IONVERSE Marketplace or transaction fees within certain IONWALLET services. High-reputation users might see a 0.1-0.5% reduction, for example.
-    *   **Access to Premium Features/APIs:** Certain advanced IONFLUX agents, IONVERSE Shards, or IONPOD AI Twin capabilities might require a minimum reputation score, effectively making reputation a key to unlock value.
+    *   **Access to Premium Features/APIs:** Certain advanced IONFLUX agents, IONVERSE Shards, or IONPOD AI Twin capabilities might require a minimum reputation score, effectively making reputation a key to unlock value. These checks are done via IAP calls to IONWALL.
     *   **DeFi Benefits (Future):** In future DeFi protocols integrated via IONWALLET, higher `Score.Fin` (financial reputation) from IONWALL could lead to better loan-to-value ratios, lower collateral requirements, or access to undercollateralized lending pools.
 *   **Staking & Reputation:** Staking ION tokens (via IONWALLET) can be a positive factor in the reputation calculation, signifying commitment to the ecosystem. Conversely, early unstaking penalties or irresponsible governance voting could negatively impact reputation.
 *   **Reputation Attestations On-Chain:** While the full score calculation is complex and off-chain (with results cached in PostgreSQL), key reputation milestones or attestations can be written to Base L2 by IONWALL (e.g., "DID X achieved 'Trusted Creator' status"). These on-chain attestations can then be used by other smart contracts or dApps to grant permissions or benefits.
@@ -471,11 +444,12 @@ IONWALL's success is measured by its ability to foster trust, enhance security, 
     *   **Reputation Score Accuracy & Predictiveness:** Correlation between reputation scores and positive/negative user outcomes (e.g., do high-rep users truly cause fewer issues?). Requires ongoing model validation.
     *   **User Trust Score (Survey-based):** Periodic surveys to gauge user perception of IONWALL's fairness and effectiveness.
     *   **False Positive/Negative Rate for OPA Policies:** Minimizing incorrect blocks or missed detections.
+    *   **IAP Request Success/Failure Rate for IONWALL Skills.**
 *   **Performance & Scalability Metrics:**
     *   **OPA Policy Evaluation Latency (P95, P99):** Must be extremely low to not impede user experience.
     *   **Reputation Score Update Latency:** Time from a reputation-impacting event to score update.
     *   **Audit Log Ingestion Rate & Query Performance (ClickHouse).**
-    *   **Throughput of Authentications / Authorizations per second.**
+    *   **Throughput of Authentications / Authorizations per second (including IAP calls).**
 *   **Ecosystem Impact Metrics:**
     *   **Correlation of High Reputation with Positive Economic Activity:** Demonstrating that higher IONWALL reputation scores lead to increased positive GMV for those users in IONVERSE/IONFLUX.
     *   **Reduction in Fraudulent Activity / Scams:** Measurable decrease in incidents reported by users or detected by other systems.
@@ -493,33 +467,33 @@ IONWALL's success is measured by its ability to foster trust, enhance security, 
 
 *   **Phase 0: Core Design (Completed)**
     *   Specification of core components (Identity, Reputation, OPA-based Governance, Audit Vault).
-    *   Technology selection and architectural blueprints.
+    *   Technology selection and architectural blueprints. IAP integration points defined.
 *   **Phase 1: MVP - Identity & Basic Access Control (Target: Q3-Q4 2024, aligns with IONVERSE MVP)**
-    *   **Focus:** Implement Passkey/DID authentication. Basic OPA policy evaluation for core IONVERSE/IONFLUX API access. Initial reputation score calculation (KYC tier + activity flags). Secure audit logging to ClickHouse with manual blockchain anchoring.
+    *   **Focus:** Implement Passkey/DID authentication. Basic OPA policy evaluation for core IONVERSE/IONFLUX API access. Initial reputation score calculation (KYC tier + activity flags). Secure audit logging to ClickHouse with manual blockchain anchoring. Basic IAP skills for auth and policy check exposed.
     *   **Milestones:**
         *   Passkey login for IONVERSE apps.
         *   IONID issuance/resolution PoC.
-        *   OPA deployed, evaluating 5-10 critical access policies.
+        *   OPA deployed, evaluating 5-10 critical access policies via direct checks and IAP.
         *   V1 Reputation Engine: scores based on KYC & on-chain transaction count (Base L2).
-        *   Basic `IONWALL_ActionApproval_Transform` functional for high-value actions.
+        *   Basic `IONWALL_ActionApproval_Transform` functional for high-value actions, using IAP `requestUserConsent` skill.
 *   **Phase 2: Reputation Engine v2 & Policy Expansion (Target: Q1-Q2 2025)**
-    *   **Focus:** Expand inputs to Reputation Engine (social graph data, content creation metrics, IONFLUX flow success). More granular Rego policies. Automated blockchain anchoring of audit logs.
+    *   **Focus:** Expand inputs to Reputation Engine (social graph data, content creation metrics, IONFLUX flow success via IAP events). More granular Rego policies. Automated blockchain anchoring of audit logs. Full suite of read-only IAP skills for reputation and policy.
     *   **Milestones:**
-        *   Reputation scores incorporate data from at least 3 ION apps.
+        *   Reputation scores incorporate data from at least 3 ION apps via NATS IAP `PlatformEvent`s.
         *   User-facing display of basic reputation score and contributing factors (in IONPOD).
         *   GitOps pipeline for policy management fully operational.
         *   Automated Merkle root anchoring of ClickHouse logs to Base L2.
 *   **Phase 3: Advanced Security & AI Integration (Target: Q3 2025)**
-    *   **Focus:** Implement AI-driven threat detection heuristics at Edge Gateway. Introduce ZK-proof capabilities for privacy-preserving claims. More sophisticated gamification of security.
+    *   **Focus:** Implement AI-driven threat detection heuristics at Edge Gateway. Introduce ZK-proof capabilities for privacy-preserving claims via IAP. More sophisticated gamification of security. IAP skills for VC issuance.
     *   **Milestones:**
         *   WASM plugins at Edge Gateway using basic ML models for request filtering.
-        *   PoC for ZK-proof based VC verification.
+        *   PoC for ZK-proof based VC verification via IAP skill.
         *   "Trust Aura" visualization in IONVERSE reflects reputation changes in near real-time.
 *   **Phase 4: Decentralized Governance of Policies & Cross-sNetwork Reputation (Target: Q4 2025 onwards)**
-    *   **Focus:** Transitioning parts of policy definition and reputation model weighting to DAO-based governance. Developing standards for cross-sNetwork reputation exchange.
+    *   **Focus:** Transitioning parts of policy definition and reputation model weighting to DAO-based governance. Developing standards for cross-sNetwork reputation exchange using IAP and VCs.
     *   **Milestones:**
         *   First set of IONWALL parameters (e.g., certain fee modifiers based on reputation) managed by ION DAO.
-        *   Pilot program for federated reputation with one external partner ecosystem.
+        *   Pilot program for federated reputation with one external partner ecosystem using IAP-compatible VCs.
 
 ## 18. GOVERNANCE & AUDIT TRAIL (Elaborated)
 
@@ -530,10 +504,10 @@ IONWALL's success is measured by its ability to foster trust, enhance security, 
 *   **Audit Trail Imperatives:**
     *   **Comprehensive Logging:** Every significant event related to IONWALL's operation is logged:
         *   Authentication success/failure (Passkey, DID).
-        *   API request received by Edge Gateway.
+        *   API request received by Edge Gateway (including IAP calls).
         *   OPA policy evaluation (input, policy matched, decision, output).
         *   Reputation score calculation inputs and outputs.
-        *   Consent granted/denied via `IONWALL_ActionApproval_Transform` (including a hash of the `action_description_text`).
+        *   Consent granted/denied via `IONWALL_ActionApproval_Transform` or IAP `requestUserConsent` skill (including a hash of the `action_description_text`).
         *   Administrative changes to policies or IONWALL configuration.
     *   **Immutability & Verifiability:** Logs are written to ClickHouse (optimized for append-only). Merkle roots of log batches are anchored to Base L2 blockchain, making the audit trail tamper-evident and publicly verifiable without exposing raw log content. Users can verify that their specific log entries are part of an anchored batch using Merkle proofs.
     *   **Accessibility (Controlled):** Users have access to their own audit log data via IONPOD (e.g., "View my recent access history," "Show all consents I've granted"). System administrators and (with proper authorization) Hybrid Layer compliance officers can access broader logs for security analysis or dispute resolution.
@@ -543,19 +517,19 @@ IONWALL's success is measured by its ability to foster trust, enhance security, 
 While section 3.6 (Observability Mesh) details the *tools* (Prometheus, Grafana, Loki, Tempo), this section focuses on the *operational processes* built around them for IONWALL.
 
 *   **Real-time Dashboards & Alerting:**
-    *   **Security Operations Dashboard (Grafana):** Displays critical IONWALL metrics: policy violation rates, authentication failures, suspicious API traffic patterns, OPA performance, reputation score anomalies, health of KYC provider integrations.
+    *   **Security Operations Dashboard (Grafana):** Displays critical IONWALL metrics: policy violation rates, authentication failures, suspicious API traffic patterns (including IAP call anomalies), OPA performance, reputation score anomalies, health of KYC provider integrations.
     *   **Automated Alerts (Alertmanager → Multiple Channels):**
-        *   **Critical Alerts (PagerDuty/OpsGenie for Hybrid Layer SecOps Team):** Sustained high rate of auth failures, OPA policy evaluation errors, Edge Gateway under attack, potential breach indicators from ML models.
+        *   **Critical Alerts (PagerDuty/OpsGenie for Hybrid Layer SecOps Team):** Sustained high rate of auth failures, OPA policy evaluation errors, Edge Gateway under attack, potential breach indicators from ML models, critical IAP endpoint failures.
         *   **Warning Alerts (Secure Chat Channel for SecOps/Devs):** Unusual spikes in specific policy denials, performance degradation in a specific IONWALL service, nearing capacity limits for ClickHouse/PostgreSQL.
-        *   **Info Alerts (NATS topics for other agents like Guardian):** Specific non-critical but notable policy hits, reputation score reaching certain thresholds for specific users.
+        *   **Info Alerts (NATS topics for other agents like Guardian):** Specific non-critical but notable policy hits, reputation score reaching certain thresholds for specific users (published as IAP `PlatformEvent`s).
 *   **Incident Response Playbooks:**
-    *   Predefined playbooks for common security incidents (e.g., "Compromised Agent Detected," "DDoS Attack on Edge Gateway," "Sudden Mass Reputation Drop," "KYC Provider Outage").
+    *   Predefined playbooks for common security incidents (e.g., "Compromised Agent Detected," "DDoS Attack on Edge Gateway," "Sudden Mass Reputation Drop," "KYC Provider Outage," "Anomalous IAP Activity Spike").
     *   Playbooks detail steps for containment, investigation, eradication, recovery, and post-mortem. May involve automated actions by ION Reactor (triggered by IONWALL alerts) or manual intervention by Hybrid Layer.
 *   **Log Analysis & Threat Hunting:**
-    *   Regular (automated and manual) analysis of ClickHouse audit logs and Loki application logs to proactively hunt for emerging threats, policy bypass attempts, or unusual behavior not caught by automated alerts. IONFLUX itself can be used to build flows for this analysis.
+    *   Regular (automated and manual) analysis of ClickHouse audit logs and Loki application logs to proactively hunt for emerging threats, policy bypass attempts, or unusual behavior not caught by automated alerts. IONFLUX itself can be used to build flows for this analysis, leveraging IONWALL's IAP skills for data.
 *   **Post-Mortem & Learning:**
     *   After any significant security incident or major policy failure, a blameless post-mortem is conducted.
     *   Findings are used to update OPA policies, improve monitoring/alerting rules, refine reputation algorithms, and enhance security training for developers/users. This feeds back into the "Evolve" stage of IONWALL's value loop.
 *   **User-Reported Incidents:** Mechanisms for users to report suspicious activity or apparent IONWALL errors directly (e.g., via IONPOD helpdesk feature, which routes to Hybrid Layer). These are triaged and fed into the incident response process.
 
-IONWALL's observability and incident response are not just about system health; they are integral to maintaining the trustworthiness and perceived fairness of the entire IONVERSE reputation and security model.
+IONWALL's observability and incident response are not just about system health; they are integral to maintaining the trustworthiness and perceived fairness of the entire IONVERSE reputation and security model, including all IAP interactions it governs.

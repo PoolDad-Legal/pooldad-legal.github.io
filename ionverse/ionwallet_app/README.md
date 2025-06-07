@@ -39,7 +39,7 @@ IONWALLET serves several key purposes within the ION ecosystem, acting as the us
     *   Includes an Automated Market Maker (AMM) vault (e.g., a custom Balancer V2 style pool or integration with existing Base L2 DEXs) for ION-Drex, ION-USDC, and potentially IONW-ION liquidity provision, offering yield opportunities through swap fees and liquidity mining rewards.
 
 *   **1.5. Universal Payment Gateway (`IONPay`):**
-    *   Provides a universal payment widget/SDK (`IONPay`) for seamless in-app purchases and service payments across all IONVERSE applications (IONVERSE App, IONFLUX, IONPOD) using ION, C-ION, Drex, or other supported tokens.
+    *   Provides a universal payment widget/SDK (`IONPay`) for seamless in-app purchases and service payments across all IONVERSE applications (IONVERSE App, IONFLUX, IONPOD) using ION, C-ION, Drex, or other supported tokens. Agents can *propose* `IONPay` transactions via the IONVERSE Agent Protocol (IAP), which are then presented to the user within IONWALLET for final, secure approval.
     *   Designed for compliance with Apple's and Google's fiscal requirements for in-app transactions, potentially by routing fiat-equivalent purchases through their IAP systems if for purely digital consumables, while allowing direct crypto for true asset ownership or P2P trades.
     *   Integrates with Apple Pay and Google Wallet for streamlined fiat payments that can be converted to digital assets on the backend.
 
@@ -68,7 +68,7 @@ The IONWALLET user experience is built around a continuous cycle of value creati
 4.  **Manage & Secure (Controlling Your Assets):**
     *   View comprehensive asset balances and transaction history with clear visualizations.
     *   Manage IONWALLET security settings: Passkey management, connected DApps/Agents (via IONWALL consent records), recovery options (MPC enrollment, social recovery setup for ERC-4337).
-    *   Review and approve/deny transaction requests initiated by other IONFLUX agents (via the `Wallet Ops Agent` interacting with IONWALLET's secure UI).
+    *   Review and approve/deny transaction or action proposals initiated by other IONFLUX agents or Agent 000 via IAP. These proposals are securely presented within the IONWALLET UI for final user consent before any execution involving user funds or keys.
 
 5.  **Grow & Reinvest (Closing the Loop & Expanding Financial Horizons):**
     *   Earned rewards (ION, IONW) can be auto-compounded or manually re-staked to maximize yield.
@@ -97,9 +97,9 @@ graph TD
     subgraph Middleware Layer (IONWALLET Backend Services)
         MW_HASURA[GraphQL API: Hasura (`ionwallet_*` schema)]
         MW_BRIDGE_DREX[Drex-ION Bridge Service (Rust/Axum)]
-        MW_TX_ORCH[Transaction Orchestrator & Nonce Manager (Go/Node.js)]
+        MW_TX_ORCH[Transaction Orchestrator & Nonce Manager (Go/Node.js) - Processes IAP Proposals]
         MW_PAYMENT_GW[Payment Gateway Integrator (Stripe, Pix - for On/Off Ramps)]
-        MW_NATS_PUBSUB[NATS Event Publisher/Subscriber (for IONWALL, IONFLUX)]
+        MW_NATS_PUBSUB[NATS Event Publisher/Subscriber (for IONWALL, IONFLUX - IAP PlatformEvents)]
     end
 
     CLIENT_CRYPTO --> MW_HASURA;
@@ -171,7 +171,6 @@ graph TD
     style DEVOPS_MONITOR fill:#efd,stroke:#333
 
     style IONWALL_SVC fill:#ddd,stroke:#333,stroke-width:2px
-
 ```
 
 ### 3.1 Client Layer (The User's Command Deck)
@@ -202,7 +201,7 @@ graph TD
     *   A dedicated microservice for handling atomic (or near-atomic via HTLC-like mechanisms) swaps between tokenized Drex on its Hyperledger Besu sidechain and ION/USDC on Base L2.
     *   Manages liquidity, FX rate oracles, and transaction atomicity. Requires high security and auditability.
 *   **Transaction Orchestrator & Nonce Manager (Go/Node.js):**
-    *   Manages the lifecycle of transactions initiated by users or `Wallet Ops Agent`.
+    *   Manages the lifecycle of transactions initiated by users directly or *proposed* by other agents via IAP (e.g., through the `Wallet Ops Agent`).
     *   Handles nonce management for ERC-4337 accounts on Base L2 to prevent replay attacks and ensure ordered transactions.
     *   Interfaces with Base L2 nodes (e.g., Infura, Alchemy, or self-hosted Erigon/Geth nodes) for transaction submission and status tracking.
     *   May incorporate a gas estimation service.
@@ -211,8 +210,8 @@ graph TD
     *   Securely handles communication with Payment Service Providers (PSPs).
     *   Coordinates with Drex-ION Bridge Service to convert fiat to/from digital assets.
 *   **NATS Event Publisher/Subscriber:**
-    *   Publishes events like `ionwallet.transaction.created`, `ionwallet.transaction.confirmed`, `ionwallet.transaction.failed`, `ionwallet.stake.initiated`, `ionwallet.reward.claimed` to NATS JetStream.
-    *   Subscribes to relevant events from other ION apps (e.g., `ionwall.reputation.updated_for_user_X` if it needs to adjust user limits).
+    *   Publishes IAP `PlatformEvent`s like `ionwallet.transaction.created`, `ionwallet.transaction.confirmed`, `ionwallet.transaction.failed`, `ionwallet.stake.initiated`, `ionwallet.reward.claimed` to NATS JetStream.
+    *   Subscribes to relevant IAP `PlatformEvent`s from other ION apps (e.g., `ionwall.reputation.updated_for_user_X` if it needs to adjust user limits).
 
 ### 3.3 Data / Storage Layer (The Vault & Ledger)
 *   **Primary Off-Chain Ledger (PostgreSQL 16):**
@@ -249,11 +248,54 @@ graph TD
     *   **Tracing:** OpenTelemetry for distributed tracing across microservices and blockchain interactions.
     *   **Alerting:** Alertmanager for critical alerts (e.g., bridge anomalies, high transaction failure rates, security events from IONWALL related to wallet activity).
 
+## 3.bis. IONWALLET & The IONVERSE Agent Protocol (IAP)
+
+IONWALLET, while primarily a user-facing application for direct interaction with their assets, also serves as a critical component within the IONVERSE Agent Protocol (IAP) ecosystem. It exposes certain functionalities and consumes events in a standardized way, enabling Agent 000 and other authorized IONFLUX agents to *propose* or *query* financial operations, always contingent on final user approval within the secure IONWALLET interface.
+
+*   **IONWALLET as an IAP Service Provider (Conceptual Service Card):**
+    *   IONWALLET's backend, particularly the Transaction Orchestrator, can be seen as exposing a conceptual "Service Card" or `AgentDefinition` to the IAP network (discoverable via a registry Agent 000 uses). This card would detail the "skills" IONWALLET offers for IAP interaction.
+*   **Key IAP Skills/Endpoints Exposed by IONWALLET (via `Wallet Ops Agent` mediation):**
+    *   **`skillId: "getWalletBalances"`**
+        *   `params: { "userDid": "did:ionid:...", "tokenTypeArray": ["ION", "IONW", "DREX_Tokenized"] }`
+        *   Returns current balances for specified tokens. Read-only, may require only general IONWALL consent for Wallet Ops Agent to access this info for the user.
+    *   **`skillId: "getTransactionHistory"`**
+        *   `params: { "userDid": "did:ionid:...", "filtersJson": { "limit": 10, "tokenType": "ION" } }`
+        *   Returns a list of past transactions based on filters. Read-only, IONWALL consent.
+    *   **`skillId: "proposeTokenTransfer"`**
+        *   `params: { "requesterAgentDid": "did:ionflux:...", "fromUserDid": "did:ionid:user_abc", "toUserDidOrAddress": "0x123...", "tokenSymbol": "ION", "amountWei": "1000000000000000000", "purposeMetadataCid": "bafy..." }`
+        *   **Output:** `{ "proposalId": "uuid_xyz", "status": "pending_user_approval_in_ionwallet" }`
+        *   This IAP call *does not execute* the transfer. It stages a proposal that appears in the user's IONWALLET UI for explicit approval or rejection.
+    *   **`skillId: "proposeStakingOperation"`**
+        *   `params: { "requesterAgentDid": "did:ionflux:...", "userDid": "did:ionid:user_abc", "poolId": "ionw_main_pool", "amountWei": "500000000000000000000", "operationType": "stake" }`
+        *   **Output:** `{ "proposalId": "uuid_abc", "status": "pending_user_approval_in_ionwallet" }`
+        *   Similar to transfers, staking/unstaking actions are proposed and await user confirmation in IONWALLET.
+    *   **`skillId: "getDrexBridgeStatus"`**
+        *   `params: {}` (or specific query params if needed)
+        *   Returns operational status of the Drex-ION bridge, current FX rates, and perhaps queue lengths. Read-only.
+    *   **`skillId: "getEstimatedTxFee"`**
+        *   `params: { "txDetailsJson": { "chain": "BaseL2", "token": "ION", "operation": "transfer", "estimatedGasUnits": "21000" } }`
+        *   Returns an estimated transaction fee in ION/ETH for a proposed operation on Base L2.
+*   **IONWALLET as IAP Event Consumer & Producer (NATS):**
+    *   **Consumes `PlatformEvent`s:**
+        *   `ionwall.reputation.score_fin_updated`: To potentially adjust user's transaction limits or display updated reputation context.
+        *   `ionflux.payment_request_for_service`: A specific event from an IONFLUX agent requesting payment for a service, which IONWALLET translates into a `proposeTokenTransfer` scenario for user approval.
+    *   **Produces `PlatformEvent`s:**
+        *   `ionwallet.transaction.initiated_by_iap_proposal` (Payload: `{ proposalId, userDid, status: 'pending_user_approval' }`)
+        *   `ionwallet.transaction.approved_by_user_via_iap` (Payload: `{ proposalId, userDid, chain_tx_hash }`)
+        *   `ionwallet.transaction.rejected_by_user_via_iap` (Payload: `{ proposalId, userDid }`)
+        *   `ionwallet.transaction.confirmed_on_chain` (Payload: `{ chain_tx_hash, status: 'success', block_number }`)
+        *   `ionwallet.transaction.failed_on_chain` (Payload: `{ chain_tx_hash, status: 'failure', error_details }`)
+*   **Critical Emphasis on User Approval in IONWALLET UI:**
+    *   It is paramount that **no IAP call can directly execute a transaction, move funds, or sign data on behalf of the user.** Any IAP skill that proposes such an action (e.g., `proposeTokenTransfer`, `proposeStakingOperation`) *must* result in a request being queued for the user.
+    *   The user **must then explicitly and unambiguously approve or reject this specific proposed action through the secure interface of their IONWALLET application (mobile or web PWA).** This approval step involves their Passkey authentication and is the ultimate point of consent.
+    *   IONWALL policies will enforce that only IONWALLET itself (identified by its secure DID/credentials) can initiate the final signing and submission of transactions to the blockchain after receiving this direct user approval from its trusted UI. The `Wallet Ops Agent` is the designated IONFLUX agent that formats IAP requests *to* IONWALLET's proposal system.
+*   **Further Details:** The specific schemas and nuances of these IAP interactions are further detailed in the main **[IONVERSE Agent Protocol (IAP) document](../specs/IONVERSE_AGENT_PROTOCOL.md)**.
+
 ## 4. HOW‑TO‑IMPLEMENT (Kickstart & Hands‑On for Developers)
 
 1.  **Understand IONWALLET's Role & Security Model:**
-    *   **Action:** Read this `README.md` thoroughly, focusing on Sections 0, 1, 2, and 14 (Security). Understand that IONWALLET is the user's sovereign space; other apps *request* actions, IONWALLET (with user approval) *performs* them.
-    *   **Goal:** Internalize the security principles and the user-in-control paradigm.
+    *   **Action:** Read this `README.md` thoroughly, focusing on Sections 0, 1, 2, 3.bis (IAP), and 14 (Security). Understand that IONWALLET is the user's sovereign space; other apps *request* actions, IONWALLET (with user approval) *performs* them.
+    *   **Goal:** Internalize the security principles and the user-in-control paradigm, especially for IAP interactions.
 
 2.  **Setup Local IONWALLET Environment:**
     *   **Action:** Clone `ionverse_superhub`. Follow `ionverse/ionwallet_app/DEVELOPMENT_SETUP.md` (to be created). This will involve running local PostgreSQL, Redis, NATS, Hasura (for `ionwallet_*` schema), and mock services for Drex bridge/payment gateways if not testing end-to-end.
@@ -273,18 +315,18 @@ graph TD
     *   Observe IONWALL interaction prompts if they are simulated or if a local IONWALL mock is running.
     *   **Goal:** Understand the user flow for core wallet functions.
 
-6.  **Integrate with `Wallet Ops Agent` (Conceptual):**
-    *   **Action:** Review `specs/agents/009_wallet_ops_agent.md`. If a test script or mock `Wallet Ops Agent` is available, try to trigger an action (e.g., `request_token_transfer`) that would theoretically interact with your running IONWALLET instance.
-    *   Observe how IONWALLET would receive and display such a request (this might require a mock IONWALLET UI harness that simulates the secure prompt).
-    *   **Goal:** Understand the A2A interaction flow between a generic agent and IONWALLET via the `Wallet Ops Agent`.
+6.  **Simulate an IAP `proposeTokenTransfer` call (e.g., using `curl` or a test script):**
+    *   **Action:** Manually construct a JSON-RPC message for the `proposeTokenTransfer` skill (as defined in 3.bis). Send it to the appropriate IONWALLET backend endpoint (likely exposed by the Transaction Orchestrator or API Gateway and IAP-enabled).
+    *   Observe if a "pending approval" item appears in your IONWALLET UI (this requires the UI to poll or subscribe for such proposals). Attempt to approve it from the IONWALLET UI.
+    *   **Goal:** Understand the IAP flow for agent-proposed transactions and the critical user approval step in IONWALLET.
 
 7.  **Explore Smart Contract Interactions (Staking/Swaps):**
     *   **Action:** If staking or AMM features are implemented in the UI, try staking some test ION/IONW. Inspect the underlying smart contract calls being made (e.g., using a block explorer for Base Sepolia connected to your MetaMask if testing through Snap, or by examining logs from the Transaction Orchestrator).
     *   **Goal:** Understand how IONWALLET interacts with on-chain DeFi protocols.
 
-8.  **Security Review (Conceptual):**
-    *   **Action:** Consider a common attack vector (e.g., phishing for Passkey creation, malicious DApp trying to trick user into signing a harmful transaction). Think about how IONWALLET's architecture (Passkeys, ERC-4337, IONWALL mediation, clear transaction summaries in IONWALLET UI) aims to mitigate this.
-    *   **Goal:** Appreciate the security layers involved.
+8.  **Security Review (Focus on IAP & Consent):**
+    *   **Action:** Consider how an IONFLUX agent might try to misuse an IAP call to IONWALLET (e.g., proposing a misleading transaction). How does the mandatory IONWALLET UI approval step, showing clear details of the *actual* proposed on-chain transaction, mitigate this?
+    *   **Goal:** Appreciate the security layers of IAP + IONWALLET UI confirmation.
 
 ## 5. TECH — Stack & Justificativas (Rationale)
 
@@ -301,13 +343,13 @@ IONWALLET's technology choices are driven by the paramount needs for security, u
 *   **Local Encrypted Storage (SQLCipher / SubtleCrypto):**
     *   **Rationale:** For securely storing user preferences or cached sensitive data directly on the user's device, encrypted with keys derived from their primary authenticator (Passkey).
 *   **Middleware (Hasura GraphQL, Rust/Axum for Drex Bridge, Go/Node.js for TX Orchestrator):**
-    *   **Rationale:** Hasura for rapid API development over PostgreSQL. Rust/Axum for performance-critical and security-sensitive Drex bridge service. Go or Node.js (TypeScript) for transaction orchestration and other middleware, chosen based on team expertise and specific needs of each microservice.
+    *   **Rationale:** Hasura for rapid API development over PostgreSQL. Rust/Axum for performance-critical and security-sensitive Drex bridge service. Go or Node.js (TypeScript) for transaction orchestration (including IAP proposals) and other middleware, chosen based on team expertise and specific needs of each microservice.
 *   **Database (PostgreSQL 16 & Redis/DragonflyDB):**
     *   **Rationale:** PostgreSQL for robust, transactional off-chain ledger. Redis/DragonflyDB for caching and session management.
 *   **Blockchain (Base L2, Hyperledger Besu):**
     *   **Rationale:** Base L2 for ION/IONW/NFTs due to Ethereum alignment, scalability, and growing ecosystem. Hyperledger Besu for a permissioned Drex sidechain allows for controlled CBDC integration and compliance.
-*   **Event Bus (NATS JetStream):**
-    *   **Rationale:** For reliable asynchronous eventing of financial transactions to the rest of the ION Super-Hub.
+*   **Event Bus (NATS JetStream for IAP `PlatformEvent`s):**
+    *   **Rationale:** For reliable asynchronous eventing of financial transactions to the rest of the ION Super-Hub, using standardized IAP `PlatformEvent` schemas.
 
 ## 6. FILES & PATHS (Key Locations)
 
@@ -315,18 +357,20 @@ IONWALLET's technology choices are driven by the paramount needs for security, u
 *   **`ionverse/apps/ionwallet_webapp/`**: Next.js source code for the PWA IONWALLET.
 *   **`ionverse/services/ionwallet_middleware/`**: Backend services.
     *   `drex_bridge_svc/` (Rust/Axum)
-    *   `tx_orchestrator_svc/` (Go/Node.js)
+    *   `tx_orchestrator_svc/` (Go/Node.js - handles IAP proposals)
     *   `payment_gateway_svc/`
     *   `hasura_ionwallet/migrations` & `metadata`
 *   **`ionverse/packages/ion_crypto_core/`**: Fork or wrapper around WalletCore SDK (WASM bindings, helper functions).
-*   **`ionverse/packages/types_schemas_ionwallet/`**: TypeScript types and Zod/JSON schemas for IONWALLET data.
+*   **`ionverse/packages/types_schemas_ionwallet/`**: TypeScript types and Zod/JSON schemas for IONWALLET data, including IAP skill parameters/responses.
 *   **`ionverse/contracts/ionwallet_erc4337/`**: Solidity code for ERC-4337 smart contract wallet components (EntryPoint, WalletFactory, Paymaster) on Base L2.
 *   **`ionverse/contracts/ion_drex_bridge/`**: Solidity/other code for smart contracts managing the ION-Drex bridge on Base L2 and the Besu sidechain.
+*   **`ionverse/contracts/ionw_token/`**: Solidity code for the IONW ERC-20 token and related staking/governance contracts.
 
 ## 7. WHERE‑TO‑PLACE‑FILES (Conventions)
 
 *   **Client UI Components:** Within the respective `ionwallet_mobile/components/` or `ionwallet_webapp/components/`. Shared components might go into `ionverse/packages/ui_components_financial/`.
-*   **Blockchain Interaction Logic (Client-Side):** Abstracted within `ion_crypto_core` or specific service modules in the client apps that prepare transactions for `Wallet Ops Agent` or direct IONWALLET interaction.
+*   **Blockchain Interaction Logic (Client-Side):** Abstracted within `ion_crypto_core` or specific service modules in the client apps that prepare transactions for IAP proposal to `Wallet Ops Agent` or direct IONWALLET interaction.
+*   **IAP Skill Handling Logic (Backend):** Within the `tx_orchestrator_svc` or a dedicated `iap_handler_svc` if complexity grows.
 *   **Middleware Service Logic:** Within the relevant service directory in `ionverse/services/ionwallet_middleware/`.
 *   **Smart Contracts:** In `ionverse/contracts/` subdirectories.
 *   **Database Schemas/Migrations:** Within the Hasura metadata/migrations directories for PostgreSQL.
@@ -335,15 +379,15 @@ IONWALLET's technology choices are driven by the paramount needs for security, u
 
 *   **`wallets` / `accounts` (ERC-4337 based):** `wallet_id` (PK, user_did from IONWALL), `erc4337_address` (on Base L2, unique), `ion_balance_wei`, `ionw_balance_wei`, `drex_balance_wei_on_bridge` (cached), `default_currency_preference`, `created_at`, `last_accessed_at`. (Primary table for user's smart contract wallet).
 *   **`assets` (NFTs & Custom Tokens):** `asset_id` (PK), `wallet_id` (FK), `contract_address` (L2), `token_id_if_nft` (string), `standard` (ERC721/1155), `balance_if_fungible` (string), `metadata_cache_cid` (link to IONPOD for rich metadata).
-*   **`transactions_offchain_ledger`:** `tx_id` (PK, internal UUID), `wallet_id` (FK), `timestamp_initiated`, `timestamp_completed_or_failed`, `type` (e.g., 'swap_ion_drex', 'stake_ionw', 'send_nft', 'internal_transfer_ionpay'), `status` (pending_ionwall, pending_user_approval_ionwallet, submitted_to_chain, confirmed_on_chain, failed_reason_code), `from_address_internal`, `to_address_internal`, `asset_1_type`, `asset_1_amount_wei`, `asset_2_type` (for swaps), `asset_2_amount_wei`, `chain_tx_hash` (nullable), `related_nats_event_id`, `ionwall_consent_receipt_cid`. (Detailed log of all operations orchestrated or recorded by IONWALLET backend).
+*   **`transactions_offchain_ledger`:** `tx_id` (PK, internal UUID), `wallet_id` (FK), `timestamp_initiated`, `timestamp_completed_or_failed`, `type` (e.g., 'swap_ion_drex', 'stake_ionw', 'send_nft', 'internal_transfer_ionpay', 'iap_proposed_transfer'), `status` (pending_ionwall, pending_user_approval_ionwallet, submitted_to_chain, confirmed_on_chain, failed_reason_code), `from_address_internal`, `to_address_internal`, `asset_1_type`, `asset_1_amount_wei`, `asset_2_type` (for swaps), `asset_2_amount_wei`, `chain_tx_hash` (nullable), `related_nats_event_id`, `ionwall_consent_receipt_cid`, `iap_proposal_id` (nullable, if initiated via IAP). (Detailed log of all operations orchestrated or recorded by IONWALLET backend).
 *   **`staking_positions`:** `stake_id` (PK), `wallet_id` (FK), `pool_id` (e.g., 'ion_main_staking', 'ionw_wallet_utility', 'amm_ion_drex_lp'), `staked_amount_wei`, `token_type_staked` (ION or IONW), `start_date`, `last_compounded_date` (if auto-compounding), `claimed_rewards_wei`, `associated_lp_token_id` (if AMM).
 *   **`rewards_ledger`:** `reward_id` (PK), `wallet_id` (FK), `source_type` (staking, liquidity_provision, platform_bonus), `amount_reward_token_wei`, `reward_token_type`, `timestamp_accrued`, `timestamp_claimed` (nullable).
 *   **`fx_rates_history`:** `rate_id` (PK), `timestamp_recorded`, `base_currency` (e.g., ION), `quote_currency` (e.g., DREX), `rate_sell`, `rate_buy`, `source_oracle_name`. (For historical swap calculations and display).
 *   **`user_preferences_wallet`:** `wallet_id` (PK, FK), `default_gas_setting` (slow, medium, fast), `auto_restake_rewards_preference_map` (JSONB mapping pool_id to boolean), `notification_preferences_json`.
+*   **`iap_transaction_proposals`**: `proposal_id` (PK, UUID), `wallet_id` (FK), `requester_agent_did`, `skill_id_invoked`, `proposal_params_json`, `status` ('pending_user_approval', 'approved_by_user', 'rejected_by_user', 'expired', 'processed_tx_id' (FK to `transactions_offchain_ledger`)), `created_at`, `expires_at`.
 
 **Relationships:**
-*   `wallets` is central, linked to `assets`, `transactions_offchain_ledger`, `staking_positions`, `rewards_ledger`, `user_preferences_wallet`.
-*   Transactions are linked to assets involved. Staking positions generate rewards.
+*   `wallets` is central. `iap_transaction_proposals` links to `wallets`. Other tables as previously described.
 
 ## 9. SCHEDULING (Cron Jobs & Scheduled Tasks for IONWALLET)
 
@@ -351,7 +395,7 @@ Managed by Chronos Agent via IONFLUX, these tasks support IONWALLET operations:
 
 *   **Auto-Compounding Staking Rewards:** For staking pools configured to auto-compound (e.g., weekly), a scheduled task calculates accrued rewards and re-stakes them into the principal for users who have opted-in.
 *   **FX Rate Updates:** Periodically fetches latest FX rates from configured oracles (Chainlink, Pyth) and updates `fx_rates_history`.
-*   **Pending Transaction Monitoring & Timeout:** Scans `transactions_offchain_ledger` for transactions stuck in "submitted_to_chain" for too long; may re-broadcast, alert user, or mark as potentially failed.
+*   **Pending Transaction Monitoring & Timeout:** Scans `transactions_offchain_ledger` for transactions stuck in "submitted_to_chain" for too long; may re-broadcast, alert user (via IAP event to Comm Link), or mark as potentially failed. Also checks `iap_transaction_proposals` for expired, unapproved proposals.
 *   **Notification of Unclaimed Rewards:** Periodically checks `rewards_ledger` for significant unclaimed rewards and sends a NATS event (to Comm Link Agent) to notify users.
 *   **Update ERC-4337 Paymaster Balances/Policies:** If IONWALLET uses paymasters for sponsored transactions, scheduled tasks might refresh paymaster balances or update their sponsoring policies.
 *   **Cache Invalidation/Refresh:** For FX rates, account balances if heavily cached.
@@ -360,18 +404,18 @@ Managed by Chronos Agent via IONFLUX, these tasks support IONWALLET operations:
 ## 10. FUTURE EXPANSION (Elaborated Points)
 
 *   **10.1. Integrated DeFi Hub (Lending, Borrowing, Yield Farming):**
-    *   Beyond basic staking/swaps, integrate access to a curated set of trusted DeFi protocols on Base L2 (or other supported chains). Users could lend assets, use assets as collateral for loans, or participate in yield farming strategies directly from IONWALLET, with risk assessments provided by TechGnosis and clear UX.
+    *   Beyond basic staking/swaps, integrate access to a curated set of trusted DeFi protocols on Base L2 (or other supported chains). Users could lend assets, use assets as collateral for loans, or participate in yield farming strategies directly from IONWALLET, with risk assessments provided by TechGnosis and clear UX. IAP skills could propose entering/exiting these positions.
 *   **10.2. Cross-Chain Asset Management & Bridging (Beyond Drex):**
-    *   Natively support more L1s/L2s (e.g., Solana, Polygon, Arbitrum) and integrate robust, audited cross-chain bridges (e.g., Hop, Connext) for asset transfers, managed with the same security and UX principles.
+    *   Natively support more L1s/L2s (e.g., Solana, Polygon, Arbitrum) and integrate robust, audited cross-chain bridges (e.g., Hop, Connext) for asset transfers, managed with the same security and UX principles. IAP proposals could target cross-chain actions.
 *   **10.3. Advanced Account Abstraction Features (Social Recovery, Session Keys):**
     *   Fully implement ERC-4337 social recovery (e.g., trusted guardians).
-    *   Introduce "Session Keys": allow users to grant temporary, restricted permissions to DApps or IONFLUX agents to perform specific actions from their wallet without needing approval for every transaction (e.g., "allow this game to make up to 10 small in-game purchases per day using my C-ION for the next hour"). Managed via IONWALL policies.
+    *   Introduce "Session Keys": allow users to grant temporary, restricted permissions via IAP to DApps or IONFLUX agents to perform specific actions from their wallet without needing approval for every transaction (e.g., "allow this game to make up to 10 small in-game purchases per day using my C-ION for the next hour"). Managed via IONWALL policies and approved in IONWALLET.
 *   **10.4. Programmable Payments & Subscriptions (On-Chain):**
-    *   Enable users to set up recurring payments, streaming payments (e.g., using Superfluid), or conditional payments directly from their IONWALLET using on-chain mechanisms where possible, or orchestrated via IONFLUX for off-chain components.
+    *   Enable users to set up recurring payments, streaming payments (e.g., using Superfluid), or conditional payments directly from their IONWALLET using on-chain mechanisms where possible, or orchestrated via IONFLUX for off-chain components. IAP skills for managing these programmable payments.
 *   **10.5. NFC & Point-of-Sale (POS) Integration for Real-World Payments:**
     *   Explore using NFC capabilities on mobile devices to allow IONWALLET (with Drex or stablecoins) to interact with compatible real-world POS terminals for payments, truly bridging the digital and physical economies. This is highly ambitious and regulation-dependent.
 *   **10.6. AI-Powered Financial Advisor (IONPOD AI Twin Integration):**
-    *   Allow the user's IONPOD AI Twin (with explicit permission) to analyze their IONWALLET transaction history and financial goals to provide personalized insights, budget recommendations, or alerts about spending patterns, without raw financial data ever leaving the user's control perimeter (analysis happens via secure queries or on-device).
+    *   Allow the user's IONPOD AI Twin (with explicit permission via IAP call to IONPOD) to analyze their IONWALLET transaction history (read-only IAP skill) and financial goals to provide personalized insights, budget recommendations, or alerts about spending patterns, without raw financial data ever leaving the user's control perimeter.
 
 ## 11. SERVER BOOTSTRAP (Helm Chart's Role & Example Values for IONWALLET)
 
@@ -388,12 +432,13 @@ The IONWALLET backend services (GraphQL API, Drex Bridge, TX Orchestrator, Payme
 
     config:
       postgresUrlSecretName: "ionwallet-postgres-url"
-      natsUrl: "nats://nats.ion-system:4222"
+      natsUrl: "nats://nats.ion-system:4222" # For IAP PlatformEvents
       baseL2RpcUrlSecretName: "base-l2-rpc-url"
       drexBesuRpcUrlSecretName: "drex-besu-rpc-url"
       ionTokenAddress: "0x..."
       ionwTokenAddress: "0x..." # Address of the IONW token
       logLevel: "info"
+      iapListenerEnabled: true # For services that process IAP proposals
 
     resources: # Default resource requests/limits
       requests:
@@ -413,7 +458,7 @@ The IONWALLET backend services (GraphQL API, Drex Bridge, TX Orchestrator, Payme
 
 ## 12. TASK TYPES (Common Operations within IONWALLET Backend)
 
-IONWALLET backend services handle various "tasks" in response to client requests or events:
+IONWALLET backend services handle various "tasks" in response to client requests or IAP proposals:
 
 1.  **FetchAccountBalances:**
     *   **Description:** Retrieves current token balances (ION, IONW, Drex, NFTs, etc.) for a user's wallet from PostgreSQL cache and verifies/updates with on-chain data.
@@ -421,21 +466,21 @@ IONWALLET backend services handle various "tasks" in response to client requests
 2.  **GetTransactionHistory:**
     *   **Description:** Queries PostgreSQL for a user's transaction history with filtering/pagination.
     *   **Latency SLA (Target):** < 300ms.
-3.  **InitiateTokenTransfer (Off-Chain Orchestration):**
-    *   **Description:** Receives transfer request, validates, creates entry in `transactions_offchain_ledger` with `pending_user_approval_ionwallet` status, sends NATS event to `Wallet Ops Agent` to trigger IONWALLET UI for approval.
-    *   **Latency SLA (Target):** < 100ms for initial processing.
-4.  **ProcessWalletApprovalAndSubmitToChain (ERC-4337):**
-    *   **Description:** Receives confirmation from `Wallet Ops Agent` (after user approves in IONWALLET UI). Transaction Orchestrator constructs, signs (via ERC-4337 bundler using user's Passkey-derived signature or hardware wallet signature), and submits transaction to Base L2. Updates status.
+3.  **ProcessIAPProposal (e.g., for TokenTransfer, Staking):**
+    *   **Description:** Receives an IAP proposal (e.g., from `Wallet Ops Agent`), validates it, creates an entry in `iap_transaction_proposals` with `pending_user_approval` status. Notifies client (IONWALLET UI) to present for approval.
+    *   **Latency SLA (Target):** < 100ms for initial processing and queuing.
+4.  **ExecuteApprovedProposal (ERC-4337):**
+    *   **Description:** After user approves an IAP proposal in IONWALLET UI, the Transaction Orchestrator constructs, signs (via ERC-4337 bundler using user's Passkey-derived signature or hardware wallet signature), and submits transaction to Base L2. Updates status in `iap_transaction_proposals` and `transactions_offchain_ledger`.
     *   **Latency SLA (Target):** < 2s for submission (excluding user approval time and chain confirmation).
 5.  **ExecuteDrexIonSwap:**
-    *   **Description:** Drex-ION Bridge Service orchestrates an atomic swap, involving locking assets on one chain, verifying, and releasing on the other. Complex, multi-step.
-    *   **Latency SLA (Target):** 5s - 30s (depends on both chains' confirmation times and bridge security model).
-6.  **ProcessStakingRequest:**
-    *   **Description:** Interacts with staking smart contracts on Base L2 to stake/unstake ION or IONW. Similar flow to token transfer regarding user approval.
+    *   **Description:** Drex-ION Bridge Service orchestrates an atomic swap.
+    *   **Latency SLA (Target):** 5s - 30s.
+6.  **ProcessStakingRequest (Direct or IAP-Proposed):**
+    *   **Description:** Interacts with staking smart contracts on Base L2.
     *   **Latency SLA (Target):** < 2s for submission after approval.
 7.  **ProcessFiatOnRamp (Pix/Card):**
-    *   **Description:** Payment Gateway Integrator communicates with PSP, receives confirmation, coordinates with Drex Bridge or TX Orchestrator to credit user's IONWALLET with digital assets.
-    *   **Latency SLA (Target):** 1s - 10s (Pix is fast; card payments can vary).
+    *   **Description:** Payment Gateway Integrator communicates with PSP, coordinates asset crediting.
+    *   **Latency SLA (Target):** 1s - 10s.
 
 ## 13. APPLE & ANDROID PUBLISHING PLAYBOOK (Compliance for Financial Apps)
 
@@ -449,15 +494,15 @@ Publishing IONWALLET, as a financial application dealing with cryptocurrencies a
     *   If IONWALLET facilitates fiat-to-crypto or crypto-to-fiat exchanges directly (not just P2P via DEXs), it may be considered a Money Service Business (MSB) or require similar licenses in various jurisdictions.
     *   **Strategy:** Partner with licensed PSPs (Stripe, Ramp, Pix providers) for fiat on/off-ramps. The Drex bridge is a critical area requiring specific regulatory approval/understanding with the Central Bank of Brazil. Clearly delineate IONWALLET's role as a technology provider vs. a licensed financial institution.
 *   **In-App Purchases (IAP):**
-    *   **Apple/Google:** If selling digital goods *consumed within the app* (e.g., C-ION credits *if not directly exchangeable for ION that has external value*, or premium wallet themes), IAP must be used.
-    *   **Strategy:** For core crypto transactions (sending ION, swapping on DEX), these are generally *not* IAP as they involve user's own assets with external value. However, if IONWALLET charges a *service fee* for facilitating these, that fee *might* need to be via IAP if Apple/Google deem it a digital service. This is a notorious gray area. Be prepared for scrutiny. Offering IONW token for staking to reduce such fees might be a compliant path.
+    *   **Apple/Google:** If selling digital goods *consumed within the app* (e.g., C-ION credits *if not directly exchangeable for ION that has external value*, or premium wallet themes, or IONW tokens if sold directly by the app operator for fiat), IAP must be used.
+    *   **Strategy:** For core crypto transactions (sending ION, swapping on DEX), these are generally *not* IAP as they involve user's own assets with external value. However, if IONWALLET charges a *service fee* for facilitating these, that fee *might* need to be via IAP if Apple/Google deem it a digital service. This is a notorious gray area. Be prepared for scrutiny. Offering IONW token for staking to reduce such fees might be a compliant path. Direct P2P NFT trading or external asset purchases are different.
 *   **KYC/AML:**
     *   Implement robust KYC/AML processes via IONWALL integration, with tiers of verification. This is essential for fiat on/off-ramps and to comply with financial regulations. Clearly explain why KYC is needed for certain features.
 *   **Security & Data Privacy:**
     *   Transparent privacy policy. Explain data encryption (SQLCipher, HTTPS, Passkey security).
     *   Regular security audits of the app and smart contracts are non-negotiable.
     *   Clearly articulate the non-custodial aspects and user's responsibility for their Passkey/recovery mechanisms.
-*   **Geofencing:** Restrict access to certain features (e.g., Drex bridge, specific DeFi protocols) based on user's jurisdiction and local regulations.
+*   **Geofencing:** Restrict access to certain features (e.g., Drex bridge, specific DeFi protocols, certain token sales) based on user's jurisdiction and local regulations.
 
 ## 14. SECURITY & COMPLIANCE (Expanded: E2EE, STRIDE, SOC-2, KYT)
 
@@ -466,9 +511,9 @@ IONWALLET's security posture is paramount.
 *   **End-to-End Encryption (E2EE) for Sensitive User Data:**
     *   User preferences, notes, or address book entries stored locally are encrypted using SQLCipher (mobile) or SubtleCrypto (web), with keys derived from Passkeys.
     *   Communication with backend services uses TLS 1.3.
-    *   Sensitive parameters for `Wallet Ops Agent` calls are E2EE if possible, or use secure channels.
+    *   Sensitive parameters for IAP calls (e.g., to `Wallet Ops Agent`) should be E2EE where possible, or use secure channels established by IONWALL.
 *   **STRIDE Threat Modeling:**
-    *   Regularly conduct STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) threat modeling exercises for all IONWALLET components (clients, middleware, smart contracts, bridges).
+    *   Regularly conduct STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) threat modeling exercises for all IONWALLET components (clients, middleware, smart contracts, bridges, IAP interactions).
     *   Document threats and mitigations. This informs security testing and development priorities.
 *   **SOC-2 Compliance (Aspirational Goal):**
     *   While full SOC-2 Type II compliance is a long-term goal requiring significant process maturity, design IONWALLET's backend services and operational procedures with SOC-2 trust service criteria (Security, Availability, Processing Integrity, Confidentiality, Privacy) in mind from early stages. This includes logging, change management, access controls.
@@ -493,48 +538,51 @@ While the **ION** token is the primary utility and governance token for the broa
         *   Fee structures for IONWALLET-specific premium services.
         *   Allocation of a portion of IONWALLET-generated fees to its own treasury or for buy-back/burn of IONW.
     3.  **Early Access to Beta Features:** IONW stakers might get early access to new, experimental IONWALLET features.
-    4.  **Enhanced API Limits (for Agents):** IONFLUX Agents using `Wallet Ops Agent` to interact with a user's IONWALLET might receive higher API call limits or preferential processing if the user (or the agent's owner) has a significant IONW stake, signaling commitment and trustworthiness for wallet interactions.
-*   **IONW Total Supply:** `[Specify Total Supply, e.g., 100,000,000 IONW]` (This would come from the Blueprint)
+    4.  **Enhanced IAP Limits (for Agents):** IONFLUX Agents or Agent 000 making IAP proposals to a user's IONWALLET might receive higher request limits or preferential processing if the target user (or the agent's owner on behalf of the agent) has a significant IONW stake, signaling commitment and trustworthiness for wallet interactions.
+*   **IONW Total Supply:** `1,000,000,000 IONW` (Example, replace with actual from Blueprint)
 *   **IONW Allocation (Example):**
-    *   **Community Treasury / Ecosystem Development:** `[e.g., 40%]` - For grants, partnerships, liquidity mining for IONW pairs.
-    *   **Team & Advisors:** `[e.g., 20%]` - Subject to vesting.
-    *   **Staking Rewards & Incentives:** `[e.g., 30%]` - Released over several years.
-    *   **Public/Private Sale (Optional):** `[e.g., 10%]` - For initial fundraising if applicable.
-*   **IONW Vesting Schedules:** Standard vesting schedules for team, advisors, and potentially private sale investors (e.g., 6-12 month cliff, 24-48 month linear vesting).
+    *   **Community Treasury / Ecosystem Development:** `40%` (400,000,000 IONW) - For grants, partnerships, liquidity mining for IONW pairs (e.g., IONW/ION, IONW/ETH on Base L2 DEXs).
+    *   **Team & Advisors:** `20%` (200,000,000 IONW) - Subject to vesting (e.g., 12-month cliff, 36-month linear vesting thereafter).
+    *   **Staking Rewards & User Incentives:** `30%` (300,000,000 IONW) - Released algorithmically over several years to reward IONW stakers and active IONWALLET users.
+    *   **Public/Private Sale (Optional):** `10%` (100,000,000 IONW) - For initial fundraising if applicable, with its own vesting.
+*   **IONW Vesting Schedules:** Clearly defined for team, advisors, and any private sale participants, e.g., 6-12 month cliff from Token Generation Event (TGE), followed by 24-48 months linear or milestone-based vesting. Staking rewards are distributed over a longer emission schedule.
 *   **IONWALLET Fees & IONW Interaction:**
     *   IONWALLET may generate revenue from:
-        *   Small percentage on swaps performed via its integrated DEX aggregator (if it offers best execution routing).
-        *   Fees for premium DeFi feature access (e.g., advanced analytics, automated yield strategies).
-        *   Fees for specific types of fiat on/off-ramp operations above a certain volume.
-    *   A portion of these fees could be used to:
-        *   Fund the IONWALLET treasury (governed by IONW holders).
-        *   Buy back and burn IONW tokens from the market.
-        *   Distribute as additional rewards to IONW stakers.
-*   **Relationship with ION Token:**
-    *   ION remains the primary gas token (via C-ION) for operations and the main governance token for the overall IONVERSE sNetwork.
-    *   IONW provides specialized governance and utility *within* IONWALLET. There might be liquidity pools like ION/IONW.
-    *   Burning ION to get C-ION might be influenced by IONW staking tiers (e.g., better conversion rates).
+        *   A small percentage (e.g., 0.05%-0.1%) on swaps performed via its integrated DEX aggregator if it provides best execution routing or value-add.
+        *   Fees for accessing premium DeFi features (e.g., advanced analytics, automated yield strategies, undercollateralized loan origination if offered).
+        *   Potentially, a share of fees from fiat on/off-ramp services above certain volumes, if permissible by PSP agreements.
+    *   A portion of these collected fees (e.g., 25-50%) could be allocated by IONW governance to:
+        *   Fund the IONWALLET operational treasury.
+        *   Buy back IONW tokens from the market and burn them (deflationary).
+        *   Distribute as additional rewards (e.g., in ION or stablecoins) to IONW stakers.
+*   **Relationship with ION & C-ION Tokens:**
+    *   **ION:** Remains the primary utility token for the sNetwork (e.g., marketplace, core services) and the token burned to create C-ION.
+    *   **C-ION:** Used to pay for compute/AI tasks across IONFLUX and other apps. IONWALLET itself might consume C-ION if its backend services perform significant AI/compute (e.g., for fraud detection or AI financial advisor features).
+    *   IONW provides specific utility and governance *within* the IONWALLET application. Synergies exist, e.g., staking IONW might give users slightly better rates for burning ION into C-ION, or make them eligible for C-ION airdrops.
+    *   Liquidity pools like ION/IONW will be encouraged on Base L2 DEXs.
 
-This dedicated IONW token allows for a focused economic model around the IONWALLET application itself, rewarding its users and stakeholders directly for its growth and utility, while still being synergistic with the main ION token.
+This dedicated IONW token allows for a focused economic model and governance structure around the IONWALLET application, rewarding its users and stakeholders directly for its growth, security, and utility, while remaining deeply interconnected with the main ION token and the C-ION credit system.
 
 ## 16. METRICS & OKRs (Significance for IONWALLET)
 
 IONWALLET's success is measured by user adoption, asset security, financial activity, and its contribution to the user's overall financial well-being and sovereignty.
 
 *   **User Adoption & Retention:**
-    *   **Active Wallets (DAU/MAU):** Number of unique wallets making at least one signed operation.
-    *   **New Wallet Creation Rate.**
+    *   **Active Wallets (DAU/MAU):** Number of unique wallets making at least one signed operation or IAP-confirmed action.
+    *   **New Wallet Creation Rate (ERC-4337 accounts deployed).**
     *   **M30 Wallet Retention:** Percentage of new wallets active after 30 days.
-    *   **Passkey Adoption Rate:** Percentage of wallets secured with Passkeys.
+    *   **Passkey Adoption Rate:** Percentage of wallets secured primarily with Passkeys.
+    *   **IONW Staking Rate:** % of circulating IONW staked.
 *   **Asset Management & Value:**
-    *   **Total Value Locked (TVL) in Wallet (ION, IONW, Drex, Stablecoins, NFTs - estimated):** Aggregate value of assets managed.
-    *   **Average Number of Assets Held per Wallet.**
-    *   **Staking Participation Rate (ION & IONW):** Percentage of eligible tokens staked.
+    *   **Total Value Locked (TVL) in IONWALLET (ION, IONW, Drex, Stablecoins, NFTs - estimated):** Aggregate value of assets managed through IONWALLET smart accounts.
+    *   **Average Number & Diversity of Assets Held per Wallet.**
+    *   **Staking Participation Value (ION & IONW):** Total value staked.
     *   **Drex Bridge Volume (BRL equivalent):** Activity through the Drex bridge.
 *   **Transactional Activity:**
-    *   **Transaction Count & Volume (by type: Send, Swap, Stake, NFT trade via IONPay).**
+    *   **Transaction Count & Volume (by type: Send, Swap, Stake, NFT trade via IONPay, IAP-proposed actions).**
     *   **`IONPay` Usage:** Number and volume of transactions using the IONPay widget.
     *   **Fiat On/Off-Ramp Volume (Pix, Cards).**
+    *   **Number of IAP proposals processed (initiated, approved, rejected).**
 *   **Security & User Trust:**
     *   **Number of Security Incidents Reported/Prevented:** (Goal is zero reported by users).
     *   **Rate of Successful Account Recovery (for MPC/Social Recovery users).**
@@ -542,20 +590,22 @@ IONWALLET's success is measured by user adoption, asset security, financial acti
 *   **North-Star KPI (Reiteration):** **“Total Value Locked & Actively Managed (TVLAM) × User Financial Health Score Improvement (derived from Score.Fin velocity)”**
 
 **OKRs will focus on:**
-*   **Objective:** Become the preferred sovereign wallet for IONVERSE citizens.
-    *   **KR1:** Achieve X active ERC-4337 smart wallets by end of Q1.
-    *   **KR2:** Process Y volume via Drex-ION bridge in Q1.
+*   **Objective:** Become the preferred sovereign and secure wallet for IONVERSE citizens.
+    *   **KR1:** Achieve X thousand active ERC-4337 smart wallets by end of Q1 2025.
+    *   **KR2:** Process Y million BRL equivalent via Drex-ION bridge in Q1 2025.
     *   **KR3:** Attain an average M30 Wallet Retention of Z%.
-*   **Objective:** Deliver best-in-class security and user trust.
-    *   **KR1:** Successfully complete 2 external smart contract audits for all new on-chain components.
-    *   **KR2:** Achieve >90% Passkey adoption among active users.
+    *   **KR4:** Launch IONW staking with W% of initial eligible supply staked within 2 months.
+*   **Objective:** Deliver best-in-class security and user trust for financial operations.
+    *   **KR1:** Successfully complete 2 external smart contract audits for all new on-chain components (IONW token, staking, ERC-4337 factory/paymaster).
+    *   **KR2:** Achieve >90% Passkey adoption among newly created wallets.
+    *   **KR3:** Implement and test KYT monitoring for X number of transactions, with an alert-to-action rate of Y.
 
 ## 17. ROADMAP (Descriptive Milestones for IONWALLET)
 
 *   **Phase 0: Core Infrastructure & Security Design (Completed)**
     *   Selection of ERC-4337 stack, WalletCore SDK, Passkey integration strategy.
     *   Security modeling (STRIDE), initial smart contract architecture for IONW and staking.
-    *   Drex bridge conceptual design and regulatory consultation.
+    *   Drex bridge conceptual design and preliminary regulatory consultation. IAP interaction points defined.
 *   **Phase 1: MVP - Secure Custody & Core Token Operations (Target: Q3-Q4 2024, aligns with IONVERSE MVP)**
     *   **Focus:** Launch secure, user-controlled wallet for ION, IONW, and Base L2 ETH (for gas). Passkey creation/login. Basic send/receive. ERC-4337 account deployment.
     *   **Milestones:**
@@ -564,25 +614,26 @@ IONWALLET's success is measured by user adoption, asset security, financial acti
         *   Send/receive these assets using ERC-4337 smart accounts.
         *   IONW token contract deployed; basic IONW staking contract (e.g., deposit IONW, earn more IONW).
         *   Initial integration with IONWALL for linking wallet activity to DID and basic `Score.Fin` input.
+        *   Basic IAP skills for balance check and transaction proposal exposed for `Wallet Ops Agent`.
 *   **Phase 2: Drex Bridge & Staking Expansion (Target: Q1 2025)**
-    *   **Focus:** Launch Drex bridge MVP for BRL (Pix) ↔ tokenized Drex ↔ ION/USDC. Expand ION/IONW staking features (e.g., auto-compounding, AMM LPs).
+    *   **Focus:** Launch Drex bridge MVP for BRL (Pix) ↔ tokenized Drex ↔ ION/USDC. Expand ION/IONW staking features (e.g., auto-compounding, AMM LPs for IONW/ION).
     *   **Milestones:**
         *   Drex-ION bridge service operational for pilot users (transactions logged, security audited).
         *   Pix on-ramp to Drex/USDC functional.
-        *   AMM for ION-Drex (or ION-USDC) pair with liquidity provision and fee generation.
-        *   `IONPay` widget MVP for simple ION payments within IONVERSE app.
+        *   AMM for IONW-ION pair with liquidity provision and fee generation.
+        *   `IONPay` widget MVP for simple ION payments within IONVERSE app, with IAP proposal flow.
 *   **Phase 3: DeFi Integration & Advanced Features (Target: Q2-Q3 2025)**
-    *   **Focus:** Integrate selected DeFi protocols (lending/borrowing). Full ERC-4337 features (social recovery, session keys). NFT management.
+    *   **Focus:** Integrate selected DeFi protocols (lending/borrowing). Full ERC-4337 features (social recovery, session keys via IAP). NFT management (display, transfer).
     *   **Milestones:**
         *   NFT display and transfer capabilities for major standards on Base L2.
-        *   Integration with one audited lending/borrowing protocol on Base L2.
+        *   Integration with one audited lending/borrowing protocol on Base L2, accessible via IONWALLET UI and IAP proposals.
         *   Social recovery mechanism for ERC-4337 accounts implemented and user-testable.
-        *   Advanced `Score.Fin` from IONWALL visibly impacting fees or feature access.
-*   **Phase 4: Cross-Chain & Real-World Expansion (Target: Q4 2025 onwards)**
-    *   **Focus:** Explore further cross-chain integrations. Enhance real-world payment capabilities (e.g., NFC PoC). Mature DAO governance for IONW.
+        *   Advanced `Score.Fin` from IONWALL visibly impacting fees or feature access within IONWALLET.
+*   **Phase 4: Cross-Chain, Governance & Real-World Expansion (Target: Q4 2025 onwards)**
+    *   **Focus:** Explore further cross-chain integrations. Enhance real-world payment capabilities (e.g., NFC PoC). Mature DAO governance for IONW token and IONWALLET parameters.
     *   **Milestones:**
-        *   Pilot for cross-chain bridge beyond Drex (e.g., to another L2 or L1).
-        *   Full IONW DAO governance over selected IONWALLET parameters.
-        *   Partnerships for wider adoption of `IONPay`.
+        *   Pilot for cross-chain asset bridge beyond Drex (e.g., to another L2 or L1 for key stablecoins or blue-chip assets).
+        *   Full IONW DAO governance over selected IONWALLET parameters (e.g., fee structures, treasury allocations).
+        *   Partnerships for wider adoption of `IONPay` and potential real-world use cases.
 
 This roadmap is dynamic and will adapt to user feedback, technological advancements, and the regulatory landscape. The Pooldad spirit of "romper a normalidade" means constantly seeking impactful innovations in sovereign finance.
