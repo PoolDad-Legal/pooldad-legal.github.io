@@ -51,16 +51,20 @@ IONFLUX provides a comprehensive, integrated suite of capabilities to function a
 
 4.  **Marketplace for Agents & Flow Blueprints:**
     *   A central hub within IONFLUX (and discoverable via the main IONVERSE app) where users and developers can:
-        *   Publish their own `AgentDefinition` blueprints (see `specs/agents/blueprint_template.md`) for others to use.
-        *   Share fully configured `AgentConfiguration` instances (with appropriate controls for sharing sensitive data like API key *references* which are then resolved by the end-user via their IONWALLET/IONWALL).
-        *   Publish `FlowBlueprint` YAML files (successful, reusable workflow templates).
-    *   Users can subscribe to, "fork," or instantiate these shared components, fostering a community-driven ecosystem of reusable automation building blocks. Monetization for popular shared agents/flows is envisioned via the ION token.
+        *   Publish their own `AgentDefinition` blueprints (see `specs/agents/blueprint_template.md`). These definitions act as discoverable "Agent Cards" as per IAP principles.
+        *   Share fully configured `AgentConfiguration` instances (with IONWALL ensuring secure handling of any sensitive references).
+        *   Publish `FlowBlueprint` YAML files (reusable workflow templates).
+    *   Users can subscribe to, "fork," or instantiate these IAP-compliant shared components, fostering a community-driven ecosystem. Monetization for popular agents/flows is envisioned via the ION token.
 
 5.  **Live Observability & Operations Dashboard:**
     *   Provides a real-time, user-friendly dashboard for monitoring active flows and agent executions.
     *   Displays key metrics: execution status per step, execution times, error rates, C-ION consumption per run, data CIDs processed.
     *   Facilitates debugging with detailed logs (linked from MinIO/Loki), input/output previews for each node, and the ability to visually trace data flow.
     *   Allows for pausing, resuming, or cancelling running flows (with appropriate permissions via IONWALL).
+
+6.  **Resource Consumption & C-ION Tokenomics:**
+    *   IONFLUX operations, particularly the execution of flows and their constituent Agent tasks (especially AI-intensive operations like LLM calls via `MuseGen_LLM_Transform` or complex data processing) and the use of premium Transforms, consume **C-ION (Compute-ION)** credits.
+    *   C-ION is a utility credit acquired by users **burning ION tokens** at a transparent, potentially dynamic rate. This mechanism directly links IONFLUX resource utilization to the primary ION token economy, creating a demand driver for ION and contributing to its value accrual. The specifics of ION tokenomics, including burn mechanisms and C-ION acquisition, are detailed in the root `ionverse/README.md` and the IONWALLET documentation. This ensures that the computational work performed by IONFLUX is sustainably funded and economically aligned with the overall IONVERSE ecosystem.
 
 ## 3. IMPLEMENTATION — Arquitetura de Camadas (Layered Architecture)
 
@@ -76,7 +80,7 @@ graph TD
     F --> G[Runtime Sandbox Manager];
     G --> H[Deno Isolates / k8s Jobs (Agent/Transform Execution)];
     H --> I[IONWALL (Permissions, Resource Control)];
-    H --> J[External Services / Other ION Apps];
+    H --> J[External Services / Other ION Apps via IAP];
     H --> K[Transforms (WASM Modules)];
     E --> D;
     G --> D;
@@ -169,7 +173,34 @@ graph TD
     *   Prometheus Alertmanager triggers alerts based on predefined rules (e.g., high failure rates, long queue depths, critical errors in logs).
     *   Alerts can be routed to IONWALL (for automated system responses or user notifications), Hybrid Layer (for human intervention), or directly to operations teams.
 
-## 4. HOW‑TO‑IMPLEMENT (Kickstart & Hands‑On for Developers)
+## 4. IONFLUX & The IONVERSE Agent Protocol (IAP)
+
+IONFLUX is a cornerstone of the IONVERSE Agent Protocol (IAP) ecosystem, acting as both a powerful IAP client and a platform for hosting IAP-compliant agents.
+
+*   **IONFLUX as an IAP Environment:**
+    *   The specialized agents detailed in `AGENTS.md` (e.g., Muse, Scribe, Chronos) are designed to be IAP-compliant. Their `AgentDefinition` blueprints serve as their "Agent Cards," making them discoverable.
+    *   These agents expose their core functionalities as "skills" that can be invoked via IAP mechanisms. For example, an IONFLUX agent running in its Deno sandbox can expose an HTTP endpoint (via a built-in A2A server library or an IONFLUX-provided wrapper) to receive JSON-RPC `message/send` calls as defined in the IAP.
+    *   They can also consume and produce `PlatformEvent`s on the NATS/Kafka bus, adhering to the IAP's specified event schema.
+
+*   **Agent 000 & IONFLUX Orchestration:**
+    *   The user's primary interface, **Agent 000 ("ION")**, heavily relies on IAP to interact with IONFLUX.
+    *   When a user gives Agent 000 a complex command (e.g., "Summarize my last three IONPOD audio notes on 'Project X' and email the summary to my team"), Agent 000 decomposes this into tasks:
+        1.  Query IONPOD (via IAP) to find the audio notes.
+        2.  Trigger the `Datascribe Transcript Agent` in IONFLUX (via IAP `message/send` or by publishing a `PlatformEvent` that Datascribe is subscribed to) for each audio note.
+        3.  Once transcripts are ready (notified via IAP events), trigger the `Muse Prompt Chain Agent` in IONFLUX (via IAP) to summarize them.
+        4.  Finally, trigger the `Comm Link Agent` in IONFLUX (via IAP) to draft and send the email.
+    *   Agent 000 manages this entire workflow, tracking task status and aggregating results, all using IAP to communicate with the IONFLUX agents.
+
+*   **IONFLUX as IAP Client & Server:**
+    *   **Server Role:** IONFLUX exposes its managed agents (and potentially entire flows if they are designed as callable "Flow Agents") as IAP-compliant services. Their `AgentDefinition`s, stored in the `agents_registry`, provide the necessary metadata for discovery and invocation by Agent 000 or other IAP-compliant entities.
+    *   **Client Role:** Within an IONFLUX flow, agents and transforms frequently act as IAP clients. For example:
+        *   A `FetchFromIONPOD_Transform_IONWALL` makes a call that (under the hood) might be an IAP request to an IONPOD service endpoint.
+        *   An agent within a flow might make a JSON-RPC call to another IONFLUX agent or an external IAP-compliant service.
+        *   Publishing events to NATS via `IPC_NATS_Publish_Transform` uses the IAP `PlatformEvent` schema.
+
+*   **Further Details:** For the comprehensive specification of inter-agent communication, discovery, and data formats, refer to the main **[IONVERSE Agent Protocol (IAP) document](../specs/IONVERSE_AGENT_PROTOCOL.md)**.
+
+## 5. HOW‑TO‑IMPLEMENT (Kickstart & Hands‑On for Developers)
 
 This provides a conceptual guide for developers wanting to build with or contribute to IONFLUX.
 
@@ -208,14 +239,14 @@ This provides a conceptual guide for developers wanting to build with or contrib
 
 7.  **Orchestrate Agents in a Flow:**
     *   **Action:** In the IONFLUX UI, create a new flow that uses your "Weather Agent" (or another pre-existing agent like `CommLinkAgent`). For instance, a flow triggered by a schedule (via Chronos) that gets weather for "Lisbon" and then sends it via `CommLinkAgent` to a NATS topic.
-    *   **Goal:** Experience agent orchestration and inter-agent communication patterns (via NATS).
+    *   **Goal:** Experience agent orchestration and inter-agent communication patterns (via NATS and IAP).
 
 8.  **Inspect Execution & Debug:**
     *   **Action:** Run your new multi-step flow. Use the IONFLUX Observability Dashboard to inspect the `run` log, view inputs/outputs of each step (Agent/Transform), check C-ION costs, and identify any errors.
     *   Introduce an error deliberately (e.g., provide invalid input to your Weather Agent) and see how it's handled and reported.
     *   **Goal:** Learn how to monitor, debug, and troubleshoot IONFLUX flows.
 
-## 5. TECH STACK & TRADE‑OFFS (Rationale)
+## 6. TECH STACK & TRADE‑OFFS (Rationale)
 
 The IONFLUX technology stack is chosen to balance performance, security, developer experience, and alignment with the broader IONVERSE ecosystem.
 
@@ -240,7 +271,7 @@ The IONFLUX technology stack is chosen to balance performance, security, develop
     *   **Rationale:** State-of-the-art LLMs for providing intelligent assistance in flow design, prompt optimization, and documentation. Ability to use multiple models via provider APIs or local instances allows flexibility.
     *   **Trade-offs:** Cost of API calls to proprietary models. Latency of LLM responses. Need for careful prompt engineering and context management to get useful suggestions. Data privacy concerns if sending flow structure/content to external LLMs (mitigated by IONWALL policies or using local/on-prem models).
 
-## 6. FILES & PATHS (Key Locations in Monorepo)
+## 7. FILES & PATHS (Key Locations in Monorepo)
 
 IONFLUX, as part of the `ionverse_superhub` monorepo, follows a structured layout:
 
@@ -251,7 +282,7 @@ IONFLUX, as part of the `ionverse_superhub` monorepo, follows a structured layou
 *   **`ionverse/services/ionflux_orchestrator/`**: Core backend logic for flow orchestration (e.g., Temporal workflows/activities, or Deno/NATS based orchestrator code).
 *   **`ionverse/services/ionflux_runtime_manager/`**: Service responsible for managing Deno isolates or K8s jobs for actual agent/transform execution.
 *   **`ionverse/packages/fluxgraph_yaml_parser/`**: Shared library for parsing, validating, and manipulating the FluxGraph YAML DSL.
-*   **`ionverse/packages/ionflux_agent_sdk/`**: SDK for developers creating custom Agents or Transforms (TypeScript/Rust). Defines interfaces, helper functions, communication protocols with the runtime.
+*   **`ionverse/packages/ionflux_agent_sdk/`**: SDK for developers creating custom Agents or Transforms (TypeScript/Rust). Defines interfaces, helper functions, communication protocols with the runtime and IAP.
 *   **`ionverse/packages/types_schemas_ionflux/`**: TypeScript types and Zod/JSON schemas for IONFLUX specific data structures (Flows, Runs, Agent Definitions, Event payloads).
 *   **`ionverse/agents_catalog/`**: (Conceptual or actual directory) Contains definitions (`AgentDefinition` blueprints) for core and community-contributed agents.
     *   `core_agents/email_wizard/manifest.yaml`
@@ -259,11 +290,12 @@ IONFLUX, as part of the `ionverse_superhub` monorepo, follows a structured layou
 *   **`ionverse/transforms_catalog/`**: Similar to agents_catalog, but for reusable Transforms.
 *   **`ionverse/services/hasura_ionflux/migrations/` & `metadata/`: For IONFLUX-specific Hasura schema.
 
-## 7. WHERE‑TO‑PLACE‑FILES (Conventions)
+## 8. WHERE‑TO‑PLACE‑FILES (Conventions)
 
 *   **New Agent Logic:**
-    *   **Definition:** An `AgentDefinition` YAML/JSON blueprint in `ionverse/agents_catalog/your_agent_name/`.
-    *   **Core Logic (if custom code):** If the agent uses custom TypeScript/Deno logic not encapsulated in existing transforms, this code would live in a dedicated package, e.g., `ionverse/packages/custom_agent_logic/your_agent_name/`, and the agent manifest would reference its entry point. If the agent is purely an orchestration of existing transforms (a "Flow Agent"), its logic is defined directly in its FluxGraph DSL within the manifest.
+    *   **Definition:** An `AgentDefinition` YAML/JSON blueprint in `ionverse/agents_catalog/your_agent_name/`. This definition includes IAP-relevant fields for discoverability.
+    *   **Core Logic (if custom code):** If the agent uses custom TypeScript/Deno logic not encapsulated in existing transforms, this code would live in a dedicated package, e.g., `ionverse/packages/custom_agent_logic/your_agent_name/`, and the agent manifest would reference its entry point.
+    *   **A2A Interface:** If the agent exposes direct A2A callable skills, its server logic might reside within its custom agent logic package or be a thin wrapper provided by the IONFLUX runtime that exposes its FluxGraph capabilities via IAP.
 *   **New Transform Logic:**
     *   **Definition:** A Transform Specification Markdown in `specs/transforms/`.
     *   **Code (WASM/TypeScript):** In a dedicated package, e.g., `ionverse/packages/custom_transforms/your_transform_name/`. Its manifest (part of its package) would specify how the runtime should execute it.
@@ -274,13 +306,13 @@ IONFLUX, as part of the `ionverse_superhub` monorepo, follows a structured layou
     *   Developer guides: `ionverse/docs/guides/ionflux_*.md`.
     *   Specs: `specs/agents/`, `specs/transforms/`.
 
-## 8. DATA STORE (Entities & Relationships - Prose for IONFLUX)
+## 9. DATA STORE (Entities & Relationships - Prose for IONFLUX)
 
 IONFLUX relies on PostgreSQL (via Hasura) for structured metadata and operational data, and MinIO/S3 (via IONPOD) for larger artifacts.
 
 *   **`flows`**:
     *   **Purpose:** Stores definitions of user-created automation workflows.
-    *   **Key Fields:** `flow_id` (PK), `owner_did` (FK to user identity via IONWALL), `name`, `description`, `current_version_id` (FK to `flow_versions`), `created_at`, `updated_at`, `tags_array`, `is_published_to_marketplace` (boolean).
+    *   **Key Fields:** `flow_id` (PK), `owner_did` (FK to user identity via IONWALL), `name`, `description`, `current_version_id` (FK to `flow_versions`), `created_at`, `updated_at`, `tags_array`, `is_published_to_marketplace` (boolean), `iap_exposure_config_cid` (nullable, CID to config on how this flow is exposed as an A2A skill).
     *   **Relationships:** One-to-many with `flow_versions`. One-to-many with `runs`.
     *   **Indexing:** On `owner_did`, `name`, `tags_array` (GIN index).
 *   **`flow_versions`**:
@@ -298,38 +330,38 @@ IONFLUX relies on PostgreSQL (via Hasura) for structured metadata and operationa
     *   **Relationships:** Many-to-one with `runs`.
     *   **Partitioning:** By `start_time` (inherited from `runs` or separate). Index on `run_id`, `status`, `agent_or_transform_name_version`.
 *   **`agents_registry` (Marketplace/Catalog of Agent Definitions):**
-    *   **Purpose:** Discoverable catalog of available agents.
-    *   **Key Fields:** `agent_def_id` (PK, e.g., "did:ionflux:agent:EmailWizard:v0.9.1"), `name`, `description`, `current_stable_version_tag`, `publisher_did`, `tags_array`, `average_rating`, `usage_count`, `ionwall_required_scopes_json_array`, `public_marketplace_listed` (boolean). Each version would link to an immutable `AgentDefinition` blueprint CID in IONPOD.
+    *   **Purpose:** Discoverable catalog of available agents, compliant with IAP Agent Card principles.
+    *   **Key Fields:** `agent_def_id` (PK, e.g., "did:ionflux:agent:EmailWizard:v0.9.1"), `name`, `description`, `current_stable_version_tag`, `publisher_did`, `tags_array`, `average_rating`, `usage_count`, `ionwall_required_scopes_json_array`, `public_marketplace_listed` (boolean), `iap_skill_definitions_cid` (CID of IAP skill details). Each version would link to an immutable `AgentDefinition` blueprint CID in IONPOD.
 *   **`agent_instances` (User's configured instances of agents):**
-    *   **Purpose:** Stores user-specific configurations for agents they use in their flows (e.g., API key references for an agent that calls an external service).
+    *   **Purpose:** Stores user-specific configurations for agents they use in their flows.
     *   **Key Fields:** `instance_id` (PK), `owner_did`, `agent_def_id` (FK), `display_name`, `configuration_values_encrypted_cid` (CID of an IONPOD object containing user's specific config, encrypted by IONWALL/user key).
 *   **`events_for_triggers` (Persistent Event Store for Triggers):**
-    *   **Purpose:** Stores events from NATS (or other sources) that can trigger flows, if persistence beyond NATS JetStream's own limits is needed or for complex event correlation.
-    *   **Key Fields:** `event_id` (PK), `source_topic_or_webhook_id`, `received_at`, `payload_cid`, `status` ('pending_processing', 'processed_by_run_id', 'archived_no_trigger').
-    *   **Indexing:** On `source_topic_or_webhook_id`, `status`, `received_at`.
+    *   **Purpose:** Stores events from NATS (or other sources) that can trigger flows, if persistence beyond NATS JetStream's own limits is needed or for complex event correlation. Adheres to IAP `PlatformEvent` schema.
+    *   **Key Fields:** `event_id` (PK, from `PlatformEvent`), `source_event_type`, `received_at`, `payload_cid`, `status` ('pending_processing', 'processed_by_run_id', 'archived_no_trigger').
+    *   **Indexing:** On `source_event_type`, `status`, `received_at`.
 *   **`billing_ledger` (C-ION Transactions):**
     *   **Purpose:** Immutable log of all C-ION credit and debit operations related to IONFLUX usage.
     *   **Key Fields:** `ledger_entry_id` (PK), `owner_did`, `timestamp`, `transaction_type` ('debit_flow_execution', 'debit_agent_deploy', 'credit_from_ion_burn'), `amount_c_ion`, `related_run_id` (nullable FK), `related_ion_burn_tx_hash` (nullable), `balance_after_c_ion`.
     *   **Security:** Potentially backed by a more integrity-protected ledger or blockchain mechanism if C-ION achieves high value representation.
 
-## 9. SCHEDULING (Trigger Types & Mechanisms)
+## 10. SCHEDULING (Trigger Types & Mechanisms)
 
 IONFLUX flows can be initiated by a variety of triggers, providing flexibility in how automations are started:
 
 1.  **Cron-like / Scheduled Triggers:**
     *   **Mechanism:** Integration with `Chronos Task Agent`. Users define a schedule (e.g., "every Monday at 9 AM," "every 15 minutes") in Chronos.
-    *   **Action:** Chronos, at the scheduled time, publishes a predefined NATS message or calls a specific IONFLUX webhook.
+    *   **Action:** Chronos, at the scheduled time, publishes a predefined NATS message (IAP `PlatformEvent`) or calls a specific IONFLUX webhook.
     *   **Payload:** The Chronos task definition includes the payload to be sent to IONFLUX, which then becomes the initial input for the triggered flow.
     *   **Use Cases:** Regular data aggregation, report generation, system maintenance tasks, scheduled social media posts.
 
 2.  **Event-Driven Triggers (NATS):**
-    *   **Mechanism:** IONFLUX flows can subscribe to specific NATS subjects (topics), including those with wildcards.
+    *   **Mechanism:** IONFLUX flows can subscribe to specific NATS subjects (topics), including those with wildcards, listening for IAP `PlatformEvent`s.
     *   **Action:** When a message is published to a subscribed NATS subject (by another agent, an external application integrated with NATS, or even another IONFLUX flow), the flow is triggered.
-    *   **Payload:** The NATS message payload becomes the input to the flow.
+    *   **Payload:** The `PlatformEvent.payload_json` becomes the input to the flow.
     *   **Use Cases:** Reacting to real-time events like "new_user_signup" (from IONWALL), "shopify_order_created" (via Symbiosis Agent), "file_added_to_ionpod_folder_X", "ai_twin_insight_generated" (from IONPOD). This is the core of an event-driven architecture.
 
 3.  **Manual Triggers (UI / API Call):**
-    *   **Mechanism:** Users can manually initiate a flow run directly from the IONFLUX UI. Developers or other systems can trigger flows via a secure HTTP API endpoint provided by IONFLUX (and protected by IONWALL).
+    *   **Mechanism:** Users can manually initiate a flow run directly from the IONFLUX UI. Developers or other systems can trigger flows via a secure HTTP API endpoint provided by IONFLUX (and protected by IONWALL). This can be an IAP `message/send` call to a "Flow Agent".
     *   **Action:** Clicking "Run" in the UI or making an API call.
     *   **Payload:** Input parameters for the flow can be provided through a form in the UI or as a JSON body in the API call.
     *   **Use Cases:** Testing flows, on-demand execution of specific tasks, user-initiated complex operations.
@@ -341,14 +373,14 @@ IONFLUX flows can be initiated by a variety of triggers, providing flexibility i
     *   **Security:** Webhook URLs must be protected. IONWALL can apply IP whitelisting, signature verification (e.g., for GitHub webhooks), or API key checks before passing the request to IONFLUX.
     *   **Use Cases:** Integrating with third-party services, reacting to events from systems not directly on NATS.
 
-5.  **Flow-to-Flow Triggers (Chaining):**
-    *   **Mechanism:** One IONFLUX flow can, as one of its steps, publish a NATS message or call the API of another IONFLUX flow.
+5.  **Flow-to-Flow Triggers (Chaining / IAP Calls):**
+    *   **Mechanism:** One IONFLUX flow can, as one of its steps, publish a NATS `PlatformEvent` or make a direct IAP `message/send` call (if the target flow is exposed as an Agent skill) to trigger another IONFLUX flow.
     *   **Action:** This allows for creating meta-orchestrations or breaking down extremely complex processes into smaller, manageable, and reusable flows.
     *   **Use Cases:** A "Daily Data Ingestion Flow" might trigger multiple specific "Data Processing Flows" based on the type of data ingested.
 
 The choice of trigger depends on the specific automation needs, whether it's time-based, event-based, user-initiated, or externally driven.
 
-## 10. FUTURE EXPANSION (Elaborated Points)
+## 11. FUTURE EXPANSION (Elaborated Points)
 
 IONFLUX is envisioned as an evolving Workflow OS. Key future directions include:
 
@@ -367,11 +399,11 @@ IONFLUX is envisioned as an evolving Workflow OS. Key future directions include:
     *   Integration with formal verification tools or techniques to mathematically prove certain properties of a flow (e.g., "this financial flow will never transfer more than X amount without explicit multi-sig approval from IONWALLET").
     *   Automated security auditing of flow definitions, checking for common pitfalls like insecure handling of credentials (even if referenced via IONWALLET, the logic matters), data exposure risks, or overly broad permissions requested by constituent agents/transforms. Results could influence an IONWALL "Flow Trust Score."
 
-5.  **Cross-sNetwork Flow Federation & Interoperability:**
-    *   Defining standards and protocols for IONFLUX instances running in different user sNetworks (or even different organizations' sNetworks) to securely discover and invoke each other's published flows or agents (with granular permissions managed by IONWALL of each participating sNetwork).
+5.  **Cross-sNetwork Flow Federation & Interoperability (via IAP):**
+    *   Leveraging IAP to define standards and protocols for IONFLUX instances running in different user sNetworks (or even different organizations' sNetworks) to securely discover and invoke each other's published flows or agents (with granular permissions managed by IONWALL of each participating sNetwork).
     *   This enables more complex, decentralized collaborations and value chains, e.g., a supply chain automation that spans multiple independent businesses each running their own IONFLUX.
 
-## 11. SERVER BOOTSTRAP (Bootstrap Script & Disaster Recovery)
+## 12. SERVER BOOTSTRAP (Bootstrap Script & Disaster Recovery)
 
 *   **Bootstrap Script (`ionflux_bootstrap.sh` or similar):**
     *   **Purpose:** Automates the initial setup and configuration of a new IONFLUX instance, whether for local development, a staging environment, or a production deployment (when not fully managed by a sophisticated IaC like Terraform + Helm for K8s).
@@ -391,7 +423,7 @@ IONFLUX is envisioned as an evolving Workflow OS. Key future directions include:
     *   **IONPOD Backups for User Data:** While IONFLUX itself doesn't store primary user data (that's in IONPOD), DR for IONFLUX means ensuring it can reconnect to a restored IONPOD/IPFS environment and IONWALL to resume operations. User-specific flow definitions (YAML CIDs) are backed up as part of IONPOD backup strategy.
     *   **Failover for Orchestrator/Runtime:** If using Kubernetes, ReplicaSets and orchestration health checks allow for automatic restart/failover of stateless IONFLUX components. For stateful orchestrators like Temporal, its own HA/DR mechanisms apply.
 
-## 12. TASK TYPES (Examples & Latency SLAs)
+## 13. TASK TYPES (Examples & Latency SLAs)
 
 IONFLUX processes a wide variety of "tasks," which are typically individual steps (Agent or Transform executions) within a flow. SLAs are conceptual targets and depend on underlying resources and external service performance.
 
@@ -401,20 +433,20 @@ IONFLUX processes a wide variety of "tasks," which are typically individual step
 2.  **IONPOD Read/Write (e.g., `FetchFromIONPOD_Transform`, `StoreToIONPOD_Transform`):**
     *   **Description:** Interacts with IPFS (via IONPOD services) to get or put data. Network I/O bound, depends on IPFS network speed and gateway performance. Involves IONWALL checks.
     *   **Latency SLA (Target):** 100ms - 5 seconds (highly variable due to IPFS).
-3.  **External API Call (e.g., via `SymbiosisPluginAgent` or a specific HTTP transform):**
-    *   **Description:** Makes an HTTP request to a third-party API. Network I/O bound, depends on external API's latency and rate limits. Involves IONWALL checks.
+3.  **External API Call (e.g., via `SymbiosisPluginAgent` or a specific HTTP transform, an IAP call):**
+    *   **Description:** Makes an HTTP request to a third-party API or another IAP-compliant agent. Network I/O bound, depends on external API's latency and rate limits. Involves IONWALL checks.
     *   **Latency SLA (Target):** 200ms - 10 seconds (highly variable).
 4.  **LLM Inference (e.g., `MuseGen_LLM_Transform`):**
-    *   **Description:** Sends a prompt to an LLM and gets a response. Compute and network I/O bound. Latency depends on model size, prompt length, output length, and provider load. Involves IONWALL checks.
+    *   **Description:** Sends a prompt to an LLM and gets a response. Compute and network I/O bound. Latency depends on model size, prompt length, output length, and provider load. Involves IONWALL checks and C-ION debit.
     *   **Latency SLA (Target):** 1 second - 60+ seconds (highly variable).
-5.  **NATS Publish/Subscribe (e.g., `IPC_NATS_Publish_Transform`, Trigger nodes):**
+5.  **NATS Publish/Subscribe (e.g., `IPC_NATS_Publish_Transform`, Trigger nodes listening for IAP `PlatformEvent`s):**
     *   **Description:** Sending or receiving messages via NATS. Very low latency if NATS is local or well-connected.
     *   **Latency SLA (Target):** <10ms - 100ms.
 6.  **Logic/Control Flow (e.g., `ConditionalRouter_Transform`, Loop constructs):**
     *   **Description:** Evaluates conditions or manages iteration. Very fast, CPU-bound within the orchestrator/runtime.
     *   **Latency SLA (Target):** <10ms.
-7.  **Agent Orchestration Step (within `MasterPlanExecutor_Transform` in ION Reactor, or a complex IONFLUX Flow-Agent):**
-    *   **Description:** One step in a larger workflow that involves invoking another agent and waiting for its completion. Latency is cumulative of that sub-agent's own tasks.
-    *   **Latency SLA (Target):** Highly variable, sum of sub-tasks + orchestration overhead.
+7.  **Agent Orchestration Step (within a Master Plan in ION Reactor, or a complex IONFLUX Flow-Agent calling other agents via IAP):**
+    *   **Description:** One step in a larger workflow that involves invoking another agent (which itself is an IAP interaction) and waiting for its completion. Latency is cumulative of that sub-agent's own tasks.
+    *   **Latency SLA (Target):** Highly variable, sum of sub-tasks + orchestration overhead + IAP communication latency.
 
 Overall flow latency is the sum of its constituent task latencies and orchestration overhead. IONFLUX aims to minimize its own overhead to ensure that the perceived performance is primarily that of the underlying agents and services being orchestrated.

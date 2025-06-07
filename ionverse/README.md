@@ -38,39 +38,40 @@ At the heart of the IONVERSE is the **Avatar**: a singular, ontological truth fo
 
 This Avatar is your universal passport—on-chain ( leveraging Account Abstraction like ERC-4337) and off-chain (DIDs, Passkeys)—granting access and agency across the entire ecosystem via granular, revocable permissions managed by IONWALL. It is designed to be **sovereign, portable, and uniquely yours.**
 
-## 4. Agent 000: Your Universal Orchestrator
+## 4. Agent 000: Your Universal IONVERSE Navigator & Orchestrator
 
-While the IONFLUX application provides a powerful environment for building and managing complex workflows with specialized agents, the concept of **Agent 000 (Zero)** represents the user's ultimate personal A2A (Agent-to-Agent) orchestrator. Think of Agent 000 as the **digital extension of your will within the IONVERSE**.
+Agent 000, known informally as "ION," is conceptualized as your primary, intelligent interface to the entire IONVERSE ecosystem. It's not a single, monolithic application but rather a sophisticated orchestrator that understands your natural language commands (text or voice) and translates them into actions across the various ION apps and their specialized agents.
 
-*   **Unified Interface:** Agent 000 acts as your primary interaction point for commanding and coordinating your other specialized IONFLUX agents (Muse, Scribe, Chronos, etc.).
-*   **Personalized Automation:** It learns your preferences, common tasks, and goals, making it easier to initiate complex automations without manually configuring each step in IONFLUX every time. For example, you could tell Agent 000, "Draft a blog post about my latest IONVERSE shard creation, get Datascribe to transcribe my voice notes for it, and then have CommLink prepare an email to my subscribers."
-*   **A2A Master Controller:** Agent 000 is designed to discover and interact with other users' Agent 000s (with permission via IONWALL), enabling sophisticated, decentralized collaborations and service exchanges.
-*   **Voice & Text Driven:** Interaction with Agent 000 is envisioned to be primarily through natural language (voice and text), making complex operations accessible.
+*   **Universal Access Point:** Whether you want to manage your finances in IONWALLET, secure your data with IONWALL, create content in IONPOD, build workflows in IONFLUX, or explore the IONVERSE 3D hub, you can initiate these actions by instructing Agent 000.
+*   **A2A Protocol Driven:** Agent 000 operates using the **IONVERSE Agent Protocol (IAP)**. It discovers the capabilities (skills) of other specialized agents and app functionalities (which also expose IAP-compliant interfaces) and communicates with them via standardized A2A messages (e.g., JSON-RPC over HTTP or platform events).
+*   **Task Decomposition & Delegation:** For complex requests, Agent 000 can decompose the task and delegate sub-tasks to the most appropriate agents. For example, "ION, draft a promotional campaign for my new IONVERSE Shard, use my latest IONPOD episode as source material, target it to high-reputation users, and schedule it through IONFLUX." Agent 000 would then coordinate with IONPOD's AI Twin, IONWALL (for reputation data), Scribe/Muse (IONFLUX agents), and Chronos (IONFLUX agent).
+*   **Contextual & Personalized:** Agent 000 learns your preferences, habits, and the context of your current work within IONVERSE to provide more relevant suggestions and efficient orchestration.
+*   **User-Centric Control:** While powerful, Agent 000 always operates under the user's authority, with critical actions requiring confirmation via IONWALL.
 
-Agent 000 is not a specific application but rather an overarching architectural concept that will be progressively realized through the capabilities of IONPOD (your AI Twin), IONFLUX (workflow execution), and IONWALL (permissions and identity). It embodies the principle of making the entire IONVERSE respond to *you*.
+Agent 000 embodies the principle of making the entire IONVERSE ecosystem seamlessly responsive to your intent, abstracting underlying complexity through intelligent, A2A-powered orchestration.
 
 ## 5. The Core ION Ecosystem Apps
 
 The IONVERSE is comprised of several core applications, each a vital organ in this living digital world. Each is designed with the Pooldad principles of directness, clarity, and impactful challenge to the status quo.
 
 *   **[IONVERSE App](./ionverse_app/README.md): The Social & Creative Hub**
-    *   The primary 3D social environment, creator economy engine, and game-platform. This is the "stage" where realities collide, identities are expressed, and new worlds are born from user imagination. It's designed for immersive experiences, social connection, and the monetization of creativity.
+    *   The primary 3D social environment, creator economy engine, and game-platform. This is the "stage" where realities collide, identities are expressed, and new worlds are born from user imagination. It's designed for immersive experiences, social connection, and the monetization of creativity. Agent 000 can interact with it to manage Shards, query the marketplace, or initiate social actions on your behalf, using the IONVERSE Agent Protocol.
     *   *Dive deeper in the [IONVERSE App Section](./ionverse_app/README.md).*
 
 *   **[IONFLUX](./ionflux_app/README.md): The Workflow OS & Orchestrator of Agents**
-    *   The central nervous system for automation. IONFLUX allows users to design, build, and deploy complex workflows using a visual, drag-and-drop interface, orchestrating a legion of specialized micro-agents to perform tasks, process data, and integrate services. It’s where insights become automated action.
+    *   The central nervous system for automation. IONFLUX allows users to design, build, and deploy complex workflows using a visual, drag-and-drop interface, orchestrating a legion of specialized micro-agents to perform tasks, process data, and integrate services. It’s where insights become automated action. Its powerful workflow engine and suite of over 10 specialized agents (detailed in `ionflux_app/AGENTS.md`) are key targets for Agent 000's orchestration, allowing users to trigger complex automations via simple commands. All IONFLUX agents adhere to IAP for interaction.
     *   *Explore the power of automation in the [IONFLUX App Section](./ionflux_app/README.md).*
 
 *   **[IONWALL](./ionwall_app/README.md): The Shield of Security & Reputation**
-    *   The zero-trust bastion that authenticates identity (via DIDs and Passkeys), continuously computes and attests to on-chain reputation scores, and applies dynamic governance policies to every transaction and interaction. IONWALL transforms security into a tangible asset and a foundation of trust.
+    *   The zero-trust bastion that authenticates identity (via DIDs and Passkeys), continuously computes and attests to on-chain reputation scores, and applies dynamic governance policies to every transaction and interaction. IONWALL transforms security into a tangible asset and a foundation of trust. Agent 000 and other agents query IONWALL via IAP for reputation scores, to request permissions, or to log auditable events, ensuring all operations respect user consent and security policies.
     *   *Understand the security framework in the [IONWALL App Section](./ionwall_app/README.md).*
 
 *   **[IONWALLET](./ionwallet_app/README.md): The Sovereign Financial Heart**
-    *   The financial core, facilitating seamless interaction between traditional fiat (via Drex for BRL) and the digital economy (ION token, C-ION compute credits, NFTs). Built on principles of user custody (ERC-4337, Passkeys), transparency, and reputation-enhanced financial operations.
+    *   The financial core, facilitating seamless interaction between traditional fiat (via Drex for BRL) and the digital economy (ION token, C-ION compute credits, NFTs). Built on principles of user custody (ERC-4337, Passkeys), transparency, and reputation-enhanced financial operations. Agent 000 can initiate IAP requests to IONWALLET for operations like checking balances or (with explicit user confirmation via IONWALLET itself) initiating transactions or staking operations.
     *   *Manage your assets in the [IONWALLET App Section](./ionwallet_app/README.md).*
 
 *   **[IONPOD](./ionpod_app/README.md): The Sovereign Cognitive Capsule**
-    *   Your personal multimedia ecosystem, knowledge vault, and content distribution hub. IONPOD securely stores your creations, documents, and verifiable credentials, and features a personal AI Twin to help manage, summarize, and distribute your digital essence.
+    *   Your personal multimedia ecosystem, knowledge vault, and content distribution hub. IONPOD securely stores your creations, documents, and verifiable credentials, and features a personal AI Twin to help manage, summarize, and distribute your digital essence. Agent 000 heavily interacts with IONPOD's AI Twin via IAP to fetch information, summarize content, or even draft new media based on your knowledge vault, making your digital essence readily available for any task.
     *   *Curate your digital life in the [IONPOD App Section](./ionpod_app/README.md).*
 
 ## 6. Tokenomics & Governance for `ionverse.dev` (Summary)
@@ -134,7 +135,14 @@ The ION Super-Hub is built upon these guiding tenets:
 7.  **Culture as Strategy:** The ecosystem is a medium for cultural expression, experimentation, and regeneration.
 8.  **Impact Over Aesthetics (But Aesthetics Matter):** Prioritize real-world value and transformative potential, delivered with compelling user experience.
 
-## 9. Navigating This Documentation
+## 9. The IONVERSE Agent Protocol (IAP): The Language of Collaboration
+
+Underpinning the dynamic interactions and orchestration capabilities of Agent 000 and the specialized agents within each ION app is the **IONVERSE Agent Protocol (IAP)**. This protocol defines the standardized way agents discover each other's capabilities, communicate requests, exchange data, and manage tasks.
+
+*   **Key Features:** Based on A2A principles, IAP utilizes discoverable "Agent Cards" (derived from `AgentDefinition`s), JSON-RPC over HTTPS for direct communication, and a common `PlatformEvent` schema for asynchronous messaging via Kafka/NATS.
+*   **Learn More:** For a detailed understanding of how agents talk to each other in the IONVERSE, please refer to the **[IONVERSE Agent Protocol Specification](./specs/IONVERSE_AGENT_PROTOCOL.md)**.
+
+## 10. Navigating This Documentation
 
 This `ionverse/README.md` file is the primary entry point. From here, you can navigate to the detailed documentation for each core application:
 
@@ -151,8 +159,9 @@ You will also find:
 *   **[Database Schemas](../specs/database/):** SQL definitions for core data tables.
 *   **[Guides](../guides/):** User-friendly explanations and how-to documents.
 *   **[Libraries & SDKs](./libs/):** Code libraries for interacting with IONVERSE (e.g., `a2a_example.py`).
+*   **[IONVERSE Agent Protocol](./specs/IONVERSE_AGENT_PROTOCOL.md):** The technical specification for inter-agent communication.
 
-## 10. Epílogo: O Futuro é uma Provocação
+## 11. Epílogo: O Futuro é uma Provocação
 
 The IONVERSE is not a destination; it's an exodus. An escape from the digital feudalism of platforms that treat users as data crops. It's an invitation to co-create a new digital continent where sovereignty, creativity, and real human connection are not just features, but the very fabric of reality.
 

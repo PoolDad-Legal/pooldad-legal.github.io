@@ -17,7 +17,19 @@ Below are the 10 core agents available within IONFLUX:
     *   **Dopamine Drip:** Implements adaptive email sequences that adjust based on user interactions (clicks, opens) to optimize offers.
     *   **Auto-Warm-Up:** Generates engagement-friendly traffic to protect and enhance sender reputation.
     *   **Predictive Clearance:** Intelligently prunes email lists by identifying and removing low-probability recipients before sending.
-*   **A2A Alignment (Conceptual):** Exposes skills like `draft_email_sequence`, `send_targeted_email`, `analyze_email_performance`. Its Agent Card would detail its capabilities in email marketing automation and personalization. Interactions would involve structured messages for initiating campaigns or fetching reports.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` serves as the foundation for its A2A Agent Card, detailing its capabilities in email marketing automation and personalization.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "draft_personalized_email"`
+            *   `params: { "recipient_profile_cid": "...", "campaign_goal": "product_launch", "base_template_cid": "..." }`
+        *   `skillId: "send_email_campaign"`
+            *   `params: { "email_draft_cid": "...", "target_segment_cid": "...", "send_time_utc": "..." }`
+        *   `skillId: "get_campaign_performance_report"`
+            *   `params: { "campaign_id": "...", "metrics": ["opens", "clicks", "conversions"] }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionflux.crm.contact_segment_updated` (to adjust targeting).
+        *   Produces: `ionflux.emailwizard.campaign_sent`, `ionflux.emailwizard.email_bounced`.
+    *   **Agent 000 Orchestration:** Agent 000 could command Email Wizard: "ION, draft a follow-up email sequence for leads from the 'Tech Expo' campaign, using template 'PostExpoV1', and schedule it to start tomorrow."
 
 ---
 
@@ -34,7 +46,19 @@ Below are the 10 core agents available within IONFLUX:
     *   **Smart Drip:** Deploys progressive message sequences (reminders, soft offers, scarcity triggers, bonuses).
     *   **Opt-in Whisper:** Generates one-click opt-in links and securely saves consent proof for compliance.
     *   **Voice-Note AI:** Transforms text scripts into humanized TTS audio notes to boost engagement.
-*   **A2A Alignment (Conceptual):** Offers skills like `send_whatsapp_message`, `initiate_whatsapp_playbook`, `get_whatsapp_reply_status`. Its Agent Card would highlight its proficiency in WhatsApp automation and conversational commerce.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` forms the basis of its A2A Agent Card, highlighting proficiency in WhatsApp automation and conversational commerce.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "send_whatsapp_template_message"`
+            *   `params: { "recipient_whatsapp_id": "...", "template_name": "order_confirmation", "template_params": {"order_id": "123"} }`
+        *   `skillId: "initiate_whatsapp_drip_campaign"`
+            *   `params: { "target_audience_cid": "...", "campaign_playbook_cid": "..." }`
+        *   `skillId: "get_whatsapp_message_status"`
+            *   `params: { "message_id_provider": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.marketplace.order_placed` (to trigger order confirmation).
+        *   Produces: `ionflux.whatsapppulse.message_delivered`, `ionflux.whatsapppulse.user_replied`.
+    *   **Agent 000 Orchestration:** Agent 000 might instruct: "ION, send a WhatsApp shipping update for order #XYZ to the customer using the 'ShipmentOut' template."
 
 ---
 
@@ -51,7 +75,19 @@ Below are the 10 core agents available within IONFLUX:
     *   **ClipForge:** Edits footage by cutting, recalibrating rhythm, inserting dynamic captions, and applying strategic zooms.
     *   **SoundSynch:** Aligns video edits with sound beats and movements to maximize retention.
     *   **AutoPost Oracle:** Calculates regional audience peak times and schedules content pushes accordingly.
-*   **A2A Alignment (Conceptual):** Exposes skills such as `analyze_video_style`, `generate_tiktok_edit_plan`, `schedule_tiktok_post`. Its Agent Card would list supported video analysis features and content optimization techniques.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` serves as its A2A Agent Card, listing supported video analysis features and content optimization techniques for TikTok.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "optimize_video_for_tiktok"`
+            *   `params: { "source_video_cid": "...", "target_style_preference_cid": "...", "desired_duration_seconds": 60 }`
+        *   `skillId: "generate_tiktok_caption_and_hashtags"`
+            *   `params: { "video_content_summary": "...", "target_audience_keywords": ["...", "..."] }`
+        *   `skillId: "schedule_tiktok_publication"`
+            *   `params: { "optimized_video_cid": "...", "caption_text": "...", "publish_time_utc": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionpod.content.new_video_ready_for_social` (from IONPOD).
+        *   Produces: `ionflux.tiktokstylist.video_published_to_tiktok`, `ionflux.tiktokstylist.tiktok_trending_sound_detected`.
+    *   **Agent 000 Orchestration:** Agent 000 could say: "ION, take the latest video from my IONPOD 'ShortClips' folder, optimize it for TikTok with a viral dance music style, and schedule it for peak US time tomorrow."
 
 ---
 
@@ -64,12 +100,24 @@ Below are the 10 core agents available within IONFLUX:
     *   **Frase-DNA:** "Protege o fluxo vital e aprende com cada falha"
 *   **Primary Goal:** To proactively minimize GMV loss and optimize Shopify store performance through predictive anomaly detection, AI-assisted root cause analysis, and adaptive corrective actions.
 *   **Core Capabilities:**
-    *   **Realtime Pulse (Aprimorado):** Predictive monitoring of Shopify events and performance metrics (CVR, AOV, site speed, checkout errors) using Kafka and TimescaleDB.
-    *   **Anomaly Guardian (Preditivo e Adaptativo):** Employs ML/Statistical models (Prophet, Z-score, Isolation Forests, RL) to detect anomalies and adjust thresholds dynamically.
-    *   **App-Impact Radar (Baseado em Embeddings):** Correlates store changes (app installs/updates, theme deploys) with performance variations to identify probable causes.
-    *   **LLM Root-Cause Analyzer:** Uses GPT-4o to analyze logs and metrics, generating hypotheses for anomalies.
-    *   **Adaptive Remediation Orchestrator:** Orchestrates corrective actions (alerts, marketing pauses, theme rollbacks, app deactivations) using LangGraph/Temporal and RL.
-*   **A2A Alignment (Conceptual):** Skills could include `monitor_shopify_store`, `analyze_sales_anomaly`, `execute_remediation_plan`. Agent Card lists supported Shopify metrics and remediation capabilities.
+    *   **Realtime Pulse (Aprimorado):** Predictive monitoring of Shopify events and performance metrics.
+    *   **Anomaly Guardian (Preditivo e Adaptativo):** Employs ML/Statistical models to detect anomalies.
+    *   **App-Impact Radar (Baseado em Embeddings):** Correlates store changes with performance variations.
+    *   **LLM Root-Cause Analyzer:** Uses GPT-4o to analyze logs and metrics.
+    *   **Adaptive Remediation Orchestrator:** Orchestrates corrective actions.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` is the basis for its A2A Agent Card, detailing supported Shopify metrics, anomaly detection capabilities, and remediation actions.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "get_shopify_health_snapshot"`
+            *   `params: { "store_id": "...", "metrics_set": ["cvr", "aov", "checkout_errors"] }`
+        *   `skillId: "analyze_performance_dip"`
+            *   `params: { "store_id": "...", "dip_details_cid": "...", "timeframe_hours": 24 }`
+        *   `skillId: "trigger_remediation_protocol"`
+            *   `params: { "store_id": "...", "anomaly_id": "...", "protocol_name": "pause_ads_and_alert_dev_team" }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.shopify.app_installed_or_updated`, `ionverse.shopify.theme_changed`.
+        *   Produces: `ionflux.shopifysentinel.anomaly_detected`, `ionflux.shopifysentinel.remediation_action_taken`.
+    *   **Agent 000 Orchestration:** Agent 000 could be alerted: "ION, Shopify Sales Sentinel detected a critical checkout error spike on 'MyStore'. Initiate 'CodeRedCheckout' protocol and notify the on-call dev."
 
 ---
 
@@ -82,12 +130,24 @@ Below are the 10 core agents available within IONFLUX:
     *   **Frase-DNA:** "Conecta almas criativas ao lucro com inteligência preditiva"
 *   **Primary Goal:** To maximize the ROI of influencer marketing and UGC campaigns by using AI to identify, predict performance of, and facilitate collaboration with the most suitable creators.
 *   **Core Capabilities:**
-    *   **Brief2Vector (Aprimorado):** Transforms campaign briefs into dense, multifaceted embeddings, incorporating business objectives and KPIs.
-    *   **PersonaProbe (Multimodal e Preditivo):** Analyzes creator portfolios (video, image, text, audio) using multimodal AI (CLIP, Whisper, LLMs) to generate 360° persona embeddings and predict audience resonance.
-    *   **AffinityMatrix (Otimizado por ROI Preditivo):** Calculates an affinity score using ML models to predict potential ROI (ER, CTR, CVR, Sales) of a brand-creator match.
-    *   **GhostPitch (Adaptativo, Multi-formato e Otimizado para Conversão):** Generates hyper-personalized collaboration proposals using GPT-4o, adapting tone and format.
-    *   **Performance Feedback Loop (Contínuo e Quantitativo):** Collects explicit and implicit feedback (engagement metrics, sales attribution) to continuously refine matching and outreach models.
-*   **A2A Alignment (Conceptual):** Presents skills like `find_matching_creators`, `predict_campaign_roi`, `draft_creator_outreach`. Its Agent Card details its analytical capabilities for influencer marketing.
+    *   **Brief2Vector (Aprimorado):** Transforms campaign briefs into dense embeddings.
+    *   **PersonaProbe (Multimodal e Preditivo):** Analyzes creator portfolios using multimodal AI.
+    *   **AffinityMatrix (Otimizado por ROI Preditivo):** Calculates affinity score and predicts ROI.
+    *   **GhostPitch (Adaptativo, Multi-formato e Otimizado para Conversão):** Generates hyper-personalized proposals.
+    *   **Performance Feedback Loop (Contínuo e Quantitativo):** Collects feedback to refine models.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` forms its A2A Agent Card, detailing its analytical capabilities for influencer/UGC marketing and predictive matching.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "find_creators_for_campaign"`
+            *   `params: { "campaign_brief_cid": "...", "target_audience_persona_cid": "...", "match_threshold": 0.75 }`
+        *   `skillId: "predict_creator_campaign_fit"`
+            *   `params: { "creator_profile_cid": "...", "campaign_brief_cid": "..." }`
+        *   `skillId: "draft_collaboration_outreach"`
+            *   `params: { "creator_profile_cid": "...", "campaign_brief_cid": "...", "offer_details_cid": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.marketing.new_campaign_brief_ready`.
+        *   Produces: `ionflux.ugcmatchmaker.creator_match_found`, `ionflux.ugcmatchmaker.outreach_sent`.
+    *   **Agent 000 Orchestration:** "ION, find three high-ROI micro-influencers on TikTok for my new sustainable fashion line campaign, using brief 'EcoChicV1'."
 
 ---
 
@@ -100,13 +160,25 @@ Below are the 10 core agents available within IONFLUX:
     *   **Frase-DNA:** "Transforma ruído de dados em conversas que convertem"
 *   **Primary Goal:** To generate highly qualified B2B leads and schedule meetings through intelligent, predictive multi-channel outreach automation, maximizing conversion from cold contact to real opportunity.
 *   **Core Capabilities:**
-    *   **DataMiner Scraper (Enriquecido 360°):** Collects and cross-references data from multiple sources (LinkedIn Sales Navigator, Clearbit, Hunter.io, news, blogs, BuiltWith) to build detailed lead/company profiles.
-    *   **Predictive Micro-Segmenter (Dinâmico e Baseado em ICP):** Creates dynamic lead micro-segments using enriched data and ML models to estimate response probability and ICP fit.
-    *   **ContextForge (Hiper-Contextual e Relevante):** Generates highly specific and relevant icebreakers and messages using LLMs based on lead profiles, ICP, and recent events.
-    *   **Multi-Cadence Orchestrator (Dinâmico, Adaptativo e Otimizado):** Manages multi-channel contact flows (Email, LinkedIn, WhatsApp), adjusting sequence and timing based on lead interactions and RL optimization.
-    *   **Auto-Booker (Integrado e Inteligente):** Facilitates meeting scheduling (Calendly, Google/Outlook Calendar) based on lead engagement.
-    *   **CRM Results Feedback Loop (Contínuo e Granular):** Pulls CRM data (Salesforce, HubSpot) on lead quality and conversion to refine outreach strategies.
-*   **A2A Alignment (Conceptual):** Exposes skills like `enrich_lead_data`, `score_lead_icp_fit`, `execute_outreach_cadence`, `book_meeting`. Agent Card outlines its B2B outreach automation capabilities.
+    *   **DataMiner Scraper (Enriquecido 360°):** Collects and cross-references data from multiple B2B data sources.
+    *   **Predictive Micro-Segmenter (Dinâmico e Baseado em ICP):** Creates dynamic lead micro-segments.
+    *   **ContextForge (Hiper-Contextual e Relevante):** Generates specific icebreakers and messages using LLMs.
+    *   **Multi-Cadence Orchestrator (Dinâmico, Adaptativo e Otimizado):** Manages multi-channel contact flows.
+    *   **Auto-Booker (Integrado e Inteligente):** Facilitates meeting scheduling.
+    *   **CRM Results Feedback Loop (Contínuo e Granular):** Pulls CRM data to refine strategies.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` acts as its A2A Agent Card, outlining its B2B lead generation and automated outreach capabilities.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "find_b2b_leads"`
+            *   `params: { "ideal_customer_profile_cid": "...", "target_industry": "SaaS", "company_size_range": [50, 200] }`
+        *   `skillId: "launch_outreach_sequence"`
+            *   `params: { "lead_segment_cid": "...", "messaging_cadence_cid": "...", "goal": "schedule_demo" }`
+        *   `skillId: "get_lead_engagement_status"`
+            *   `params: { "lead_id": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionflux.crm.new_lead_manually_added_for_enrichment`.
+        *   Produces: `ionflux.outreachautomaton.meeting_booked`, `ionflux.outreachautomaton.lead_responded_positively`.
+    *   **Agent 000 Orchestration:** "ION, find 50 new B2B leads matching ICP 'FintechScaleup', enrich their data, and start the 'InitialContactV2' outreach sequence."
 
 ---
 
@@ -115,16 +187,28 @@ Below are the 10 core agents available within IONFLUX:
 *   **Epíteto:** O Orquestrador da Clareza Coletiva em Canais de Comunicação
 *   **TAGLINE:** TRANSFORMA CAOS DE MENSAGENS EM DECISÕES ACIONÁVEIS — INSTANTANEAMENTE
 *   **Essência:**
-    *   **Arquétipo:** Scribe/Librarian/Facilitator (Adaptable based on context)
+    *   **Arquétipo:** Scribe/Librarian/Facilitator
     *   **Frase-DNA:** "Destila ruído em sinal, transforma conversa em conhecimento acionável"
-*   **Primary Goal:** To enhance team alignment and decision-making velocity in fast-paced communication platforms (Slack, MS Teams, Discord, IONFLUX ChatDock) by converting discussions into structured summaries, explicit decisions, traceable action items, and documented knowledge.
+*   **Primary Goal:** To enhance team alignment and decision-making velocity in fast-paced communication platforms by converting discussions into structured summaries, explicit decisions, traceable action items, and documented knowledge.
 *   **Core Capabilities:**
-    *   **Conversational Thread Siphon & Distiller (Aprimorado):** Monitors or on-demand processes chat threads using LLMs with RAG to extract key points, decisions, action items, and sentiment.
-    *   **Action Item & Decision Tracker (Aprimorado):** Identifies and formats action items and decisions, allows interactive confirmation, and logs them to internal/external knowledge bases (Notion, Jira, Canvas).
-    *   **Structured Brief & Report Generator (Aprimorado):** Generates customizable markdown summaries and "Briefcast Audio" (TTS versions).
-    *   **Knowledge Integration & Contextualization (Novo):** Integrates with IONFLUX Canvas, Notion, Confluence to archive summaries and decisions, making chat knowledge persistent and searchable.
-    *   **Interactive Governance & Feedback (Aprimorado):** Uses interactive chat elements for confirming decisions/actions and collects feedback on summary quality for self-improvement.
-*   **A2A Alignment (Conceptual):** Skills such as `summarize_chat_thread`, `extract_action_items`, `log_decision_to_kb`. Its Agent Card would describe its capabilities in knowledge management and communication efficiency.
+    *   **Conversational Thread Siphon & Distiller (Aprimorado):** Monitors or processes chat threads using LLMs with RAG.
+    *   **Action Item & Decision Tracker (Aprimorado):** Identifies, formats, and logs action items/decisions.
+    *   **Structured Brief & Report Generator (Aprimorado):** Generates markdown summaries and TTS audio.
+    *   **Knowledge Integration & Contextualization (Novo):** Integrates with knowledge bases.
+    *   **Interactive Governance & Feedback (Aprimorado):** Uses interactive chat elements for confirmations.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` forms its A2A Agent Card, detailing its skills in knowledge management, summarization, and action tracking from communication platforms.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "summarize_communication_thread"`
+            *   `params: { "platform_name": "slack", "channel_id": "...", "thread_ts": "...", "summary_length": "brief" }`
+        *   `skillId: "extract_decisions_and_actions"`
+            *   `params: { "transcript_cid": "...", "output_format": "markdown_list" }`
+        *   `skillId: "archive_summary_to_knowledge_base"`
+            *   `params: { "summary_cid": "...", "knowledge_base_target_cid": "...", "tags": ["project_phoenix", "q3_planning"] }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.communication.new_long_thread_detected_in_channel_X`.
+        *   Produces: `ionflux.commbutler.summary_created`, `ionflux.commbutler.action_item_logged`.
+    *   **Agent 000 Orchestration:** "ION, summarize the key decisions from the #general channel discussion on 'Q4 Budget' from yesterday and log it to our Notion workspace under 'Finance Meetings'."
 
 ---
 
@@ -137,12 +221,24 @@ Below are the 10 core agents available within IONFLUX:
     *   **Frase-DNA:** "Amplifica a autenticidade, sintoniza a ressonância"
 *   **Primary Goal:** To empower creators and brands to maintain and evolve their authentic voice and persona at scale, ensuring consistency, optimizing audience resonance, and protecting against identity dilution.
 *   **Core Capabilities:**
-    *   **Multimodal Persona Definition & Extraction (Aprimorado):** Ingests diverse content (text, audio, video, images) to extract a 360° persona fingerprint (lexicon, style, visual aesthetics, values) using multimodal LLMs and embedding models.
-    *   **Content Authenticity & Resonance Scoring (Aprimorado):** Evaluates new content against the defined persona for an "Authenticity Score" and predicts an "Audience Resonance Score" using ML.
-    *   **AI-Powered Style Repair & Enhancement (Aprimorado):** Uses LLMs to suggest edits or offer variations to align content with the persona and target audience segments while preserving the core message.
-    *   **Persona Evolution & Drift Monitor (Aprimorado):** Continuously monitors content and audience feedback to detect persona drift, differentiating between negative dilution and positive evolution.
-    *   **Persona Style Transfer Hub (Novo):** Acts as a style consultant for other IONFLUX content-generating agents, ensuring their outputs align with the target persona.
-*   **A2A Alignment (Conceptual):** Offers skills like `define_persona_from_content`, `score_content_authenticity`, `repair_content_style`, `get_persona_style_guidelines`. Agent Card details its persona management and content alignment services.
+    *   **Multimodal Persona Definition & Extraction (Aprimorado):** Ingests diverse content to extract a 360° persona fingerprint.
+    *   **Content Authenticity & Resonance Scoring (Aprimorado):** Evaluates new content against persona and predicts audience resonance.
+    *   **AI-Powered Style Repair & Enhancement (Aprimorado):** Uses LLMs to suggest edits or offer variations.
+    *   **Persona Evolution & Drift Monitor (Aprimorado):** Monitors content and feedback to detect persona drift.
+    *   **Persona Style Transfer Hub (Novo):** Acts as a style consultant for other content-generating agents.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` serves as its A2A Agent Card, describing its persona management, content analysis, and style alignment services.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "analyze_content_for_persona_alignment"`
+            *   `params: { "content_cid": "...", "target_persona_profile_cid": "..." }`
+        *   `skillId: "generate_persona_style_guide"`
+            *   `params: { "persona_profile_cid": "...", "output_format": "markdown" }`
+        *   `skillId: "adapt_text_to_persona"`
+            *   `params: { "text_input_cid": "...", "target_persona_profile_cid": "...", "strength_of_adaptation": 0.8 }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionpod.content.new_draft_created_by_user_X`.
+        *   Produces: `ionflux.personaguardian.content_review_completed`, `ionflux.personaguardian.style_suggestion_available`.
+    *   **Agent 000 Orchestration:** "ION, check if my latest blog post draft aligns with my 'TechFuturist' persona and suggest improvements for audience resonance."
 
 ---
 
@@ -153,14 +249,26 @@ Below are the 10 core agents available within IONFLUX:
 *   **Essência:**
     *   **Arquétipo:** Gamemaster/Mentor
     *   **Frase-DNA:** "Recompensa o esforço, celebra o progresso, inspira a maestria"
-*   **Primary Goal:** To drive user engagement, feature adoption, task completion, and productive collaboration within IONFLUX through a sophisticated, adaptive, and social gamification system.
+*   **Primary Goal:** To drive user engagement, feature adoption, task completion, and productive collaboration within IONFLUX and the broader IONVERSE through a sophisticated, adaptive, and social gamification system.
 *   **Core Capabilities:**
-    *   **Dynamic XP & Achievement Engine (Aprimorado):** Attributes XP and tracks progress for a wide range of measurable actions and events within IONFLUX.
-    *   **Generative & Symbolic Badge Forge (Aprimorado):** Generates unique and aesthetically meaningful SVG/PNG badges, potentially using generative AI for visuals and LLMs for names/lore.
-    *   **Adaptive Leaderboards & Social Feeds (Aprimorado):** Creates dynamic, filterable leaderboards (for users and even agents) and activity feeds to announce achievements.
-    *   **Intelligent Reward & Recognition Router (Aprimorado):** Triggers webhooks or notifications for new levels/badges, routing to various digital, functional, or external rewards.
-    *   **Quest & Challenge Designer (Novo):** Allows administrators to create structured "Quests" or "Challenges" (sequences of tasks) for users.
-*   **A2A Alignment (Conceptual):** Exposes skills like `award_xp_for_action`, `check_badge_status`, `get_leaderboard_data`. Its Agent Card would describe its role in the platform's engagement and reward systems.
+    *   **Dynamic XP & Achievement Engine (Aprimorado):** Attributes XP and tracks progress for measurable actions.
+    *   **Generative & Symbolic Badge Forge (Aprimorado):** Generates unique SVG/PNG badges.
+    *   **Adaptive Leaderboards & Social Feeds (Aprimorado):** Creates dynamic leaderboards and activity feeds.
+    *   **Intelligent Reward & Recognition Router (Aprimorado):** Triggers webhooks/notifications for rewards.
+    *   **Quest & Challenge Designer (Novo):** Allows creation of structured "Quests."
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` is the basis for its A2A Agent Card, detailing its role in the platform's engagement, quest, and reward systems.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "record_user_action_for_xp"`
+            *   `params: { "user_did": "...", "action_type": "flow_created", "action_metadata_cid": "..." }`
+        *   `skillId: "award_badge_manually"`
+            *   `params: { "user_did": "...", "badge_id": "early_adopter_q1", "reason": "Exceptional community contribution" }`
+        *   `skillId: "get_user_achievements_list"`
+            *   `params: { "user_did": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.app.feature_X_used_by_user_Y`, `ionflux.flow.successfully_executed_by_user_Z`.
+        *   Produces: `ionflux.badgemotivator.badge_awarded`, `ionflux.badgemotivator.level_up`.
+    *   **Agent 000 Orchestration:** Agent 000 itself could be a source of actions that Badge Motivator tracks, or it could query a user's achievements: "ION, what badges has User Alpha earned this month?"
 
 ---
 
@@ -173,11 +281,23 @@ Below are the 10 core agents available within IONFLUX:
     *   **Frase-DNA:** "Revela a verdade financeira por trás da receita"
 *   **Primary Goal:** To provide e-commerce store owners with clear, concise, and actionable insights into their real profitability by tracking revenue and variable costs to calculate contribution margin.
 *   **Core Capabilities:**
-    *   **Automated Cost Ingestor (Aprimorado e Conectado):** Pulls revenue data from Shopify; allows user input or integration for COGS, transaction fees, shipping costs, marketing costs, and app fees.
-    *   **Real-time Margin Calculator (Aprimorado):** Calculates gross and net contribution margins per order and aggregates by time periods.
-    *   **Profitability Variance Sentinel (Aprimorado):** Monitors margin trends and alerts on significant negative deviations or cost increases.
-    *   **Actionable Insights & Daily Digestor (Aprimorado):** Provides daily/weekly summaries and LLM-generated optimization suggestions.
-    *   **Data Source for Other Agents (Novo):** Exposes profitability data via internal API for other IONFLUX agents to use in their decision-making.
-*   **A2A Alignment (Conceptual):** Skills could include `get_product_profitability`, `generate_profit_digest`, `check_margin_alerts`. Agent Card would detail its financial analysis capabilities for e-commerce.
+    *   **Automated Cost Ingestor (Aprimorado e Conectado):** Pulls revenue data from Shopify; allows input/integration for COGS, fees, shipping, marketing.
+    *   **Real-time Margin Calculator (Aprimorado):** Calculates gross and net contribution margins.
+    *   **Profitability Variance Sentinel (Aprimorado):** Monitors margin trends and alerts on deviations.
+    *   **Actionable Insights & Daily Digestor (Aprimorado):** Provides summaries and LLM-generated optimization suggestions.
+    *   **Data Source for Other Agents (Novo):** Exposes profitability data for other agents.
+*   **A2A Alignment (Conceptual):**
+    *   Its `AgentDefinition` serves as its A2A Agent Card, outlining its financial analysis capabilities specifically for e-commerce profitability.
+    *   **Exposed Skills (Examples via JSON-RPC `message/send`):**
+        *   `skillId: "get_profit_margin_for_product"`
+            *   `params: { "store_id": "...", "product_id_shopify": "...", "time_period": "last_30_days" }`
+        *   `skillId: "generate_profitability_report"`
+            *   `params: { "store_id": "...", "report_period": "q1_2024", "output_format_cid_preference": "..." }`
+        *   `skillId: "add_manual_cost_entry"`
+            *   `params: { "store_id": "...", "cost_category": "marketing_spend_facebook", "amount": 150.75, "date_incurred": "..." }`
+    *   **Consumed/Produced Events (IAP `PlatformEvent`):**
+        *   Consumes: `ionverse.shopify.order_created`, `ionverse.adsplatform.campaign_spend_updated`.
+        *   Produces: `ionflux.revenuetracker.profit_margin_alert`, `ionflux.revenuetracker.weekly_digest_ready`.
+    *   **Agent 000 Orchestration:** "ION, what was the net profit margin for my 'SuperWidget' product last month, and are there any cost anomalies I should look into?"
 
 ---
